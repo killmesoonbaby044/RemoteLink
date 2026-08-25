@@ -8,24 +8,36 @@ another script based on it; another opens its own nested SSH
 connection, which needs a real controlling terminal (for a password
 prompt or host-key check). Plain pipes make most CLI tools drop into
 non-interactive/buffered mode, which breaks all of that.
+
+Cross-platform: developed on macOS, deployed on Windows. Both sides
+get a real PTY, just from two different libraries that happen to
+share almost the same API:
+  - POSIX (macOS/Linux): `ptyprocess`  (pip install ptyprocess)
+  - Windows:              `pywinpty`    (pip install pywinpty)
+
+Both expose PtyProcess.spawn(argv, cwd=, dimensions=(rows, cols)) plus
+.read() / .write() / .isalive() / .terminate() / .wait(), so this
+class doesn't need an if/else per platform -- just the import, and one
+spot where POSIX wants bytes and Windows wants str.
 """
 
 from __future__ import annotations
 
 import asyncio
-import fcntl
-import os
-import pty
-import signal
-import struct
-import subprocess
-import termios
+import sys
 from pathlib import Path
 
 from fastapi import WebSocket
 
 from app.services.io_relay import relay
 from app.services.script_runner import build_command, resolve_script_path
+
+IS_WINDOWS = sys.platform == "win32"
+
+if IS_WINDOWS:
+    from winpty import PtyProcess  # pywinpty -- wraps ConPTY
+else:
+    from ptyprocess import PtyProcess  # wraps pty.fork()
 
 # Matches the Terminal({ rows, cols }) xterm.js is created with in app.js,
 # so line-wrapping and cursor-addressed output line up correctly.
@@ -38,8 +50,7 @@ class ProcessSession:
     def __init__(self, websocket: WebSocket, name: str):
         self.websocket = websocket
         self.name = name
-        self.process: subprocess.Popen | None = None
-        self.master_fd: int | None = None
+        self.pty: PtyProcess | None = None
 
     async def run(self) -> None:
         path = resolve_script_path(self.name)
@@ -47,43 +58,36 @@ class ProcessSession:
 
         await self._send_status(f"Starting {self.name}...")
 
-        self._spawn(command, path.parent)
+        loop = asyncio.get_running_loop()
+
+        # spawn() does the fork/exec (or CreateProcess on Windows) --
+        # off the event loop just in case it's slow to come up.
+        self.pty = await loop.run_in_executor(
+            None,
+            lambda: PtyProcess.spawn(
+                command, cwd=str(path.parent), dimensions=(_ROWS, _COLS)
+            ),
+        )
 
         await relay(self._read_process_output(), self._read_browser_input())
 
-        returncode = await asyncio.get_running_loop().run_in_executor(
-            None, self.process.wait
-        )
+        returncode = await loop.run_in_executor(None, self.pty.wait)
         await self._send_status(f"'{self.name}' exited with code {returncode}")
 
     async def close(self) -> None:
-        if self.process and self.process.poll() is None:
-            try:
-                os.killpg(self.process.pid, signal.SIGTERM)
-            except ProcessLookupError:
-                pass
+        if not self.pty:
+            return
 
-        if self.master_fd is not None:
-            try:
-                os.close(self.master_fd)
-            except OSError:
-                pass
+        try:
+            if self.pty.isalive():
+                self.pty.terminate(force=True)
+        except Exception:
+            pass
 
-    def _spawn(self, command: list[str], cwd: Path) -> None:
-        master_fd, slave_fd = pty.openpty()
-        _set_winsize(slave_fd, _ROWS, _COLS)
-
-        self.process = subprocess.Popen(
-            command,
-            cwd=cwd,
-            stdin=slave_fd,
-            stdout=slave_fd,
-            stderr=slave_fd,
-            start_new_session=True,  # slave becomes the child's controlling tty
-        )
-
-        os.close(slave_fd)  # parent only needs the master end from here on
-        self.master_fd = master_fd
+        try:
+            self.pty.close()
+        except Exception:
+            pass
 
     async def _read_process_output(self) -> None:
         loop = asyncio.get_running_loop()
@@ -91,31 +95,34 @@ class ProcessSession:
         while True:
             data = await loop.run_in_executor(None, self._blocking_read)
 
-            if not data:
+            if data is None:
                 break
 
             await self.websocket.send_bytes(data)
 
-    def _blocking_read(self) -> bytes:
+    def _blocking_read(self) -> bytes | None:
         try:
-            return os.read(self.master_fd, 4096)
-        except OSError:
-            # Raised once the child exits and the slave side is gone.
-            return b""
+            data = self.pty.read(4096)
+        except (EOFError, OSError):
+            # Raised once the child exits and the pty side is gone.
+            return None
+
+        if not data:
+            return None
+
+        # POSIX (ptyprocess) hands back bytes already; Windows
+        # (pywinpty) hands back str -- normalize to bytes either way,
+        # since that's what websocket.send_bytes() expects.
+        return data.encode("utf-8", errors="replace") if isinstance(data, str) else data
 
     async def _read_browser_input(self) -> None:
         while True:
             data = await self.websocket.receive_text()
 
             try:
-                os.write(self.master_fd, data.encode("utf-8"))
-            except OSError:
+                self.pty.write(data if IS_WINDOWS else data.encode("utf-8"))
+            except (EOFError, OSError):
                 break
 
     async def _send_status(self, message: str) -> None:
         await self.websocket.send_json({"type": "status", "message": message})
-
-
-def _set_winsize(fd: int, rows: int, cols: int) -> None:
-    winsize = struct.pack("HHHH", rows, cols, 0, 0)
-    fcntl.ioctl(fd, termios.TIOCSWINSZ, winsize)
