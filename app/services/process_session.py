@@ -24,6 +24,8 @@ spot where POSIX wants bytes and Windows wants str.
 from __future__ import annotations
 
 import asyncio
+import logging
+import re
 import sys
 from pathlib import Path
 
@@ -42,6 +44,7 @@ else:
 # Matches the Terminal({ rows, cols }) xterm.js is created with in app.js,
 # so line-wrapping and cursor-addressed output line up correctly.
 _ROWS, _COLS = 30, 120
+_RUNNING_LINE = re.compile(r'^Running:\s+"([^"]+)"\s*(.*)$')
 
 
 class ProcessSession:
@@ -97,6 +100,24 @@ class ProcessSession:
 
             if data is None:
                 break
+
+            # --- START INTERCEPTION LOGIC ---
+            text_data = data.decode("utf-8", errors="replace")
+
+            # Check for the specific running status pattern using _RUNNING_LINE
+            match = _RUNNING_LINE.search(text_data)
+            if match:
+                script_path = match.group(1)
+                pc_name = match.group(2).strip()
+                # Send a JSON payload that the frontend JS listens for
+                logging.log(20, f"{script_path} {pc_name}")
+                await self.websocket.send_json(
+                    {
+                        "type": "script_status_update",
+                        "path": script_path,
+                        "name": pc_name,
+                    }
+                )
 
             await self.websocket.send_bytes(data)
 

@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+
+
+{% block title %}
+Terminal
+{% endblock %}
+
+
+{% block head %}
+
+<link
+    rel="stylesheet"
+    href="/static/xterm.css"
+>
+
+{% endblock %}
+
+
+{% block content %}
+
+<div class="terminal-page">
+
+    <div class="terminal-info">
+
+        {% if script %}
+
+        <span>
+            Script:
+        </span>
+
+        <strong id="host-name">
+            {{ script }}
+        </strong>
+
+        {% else %}
+
+        <span>
+            Host:
+        </span>
+
+        <strong id="host-name">
+            {{ host }}
+        </strong>
+
+        {% endif %}
+
+        <span id="status">
+            Connecting...
+        </span>
+
+    </div>
+
+
+    <div id="terminal"></div>
+
+</div>
+
+{% endblock %}
+
+
+{% block scripts %}
+
+<script src="/static/xterm.js"></script>
+
+<script src="/static/app.js"></script>
+
+{% endblock %}

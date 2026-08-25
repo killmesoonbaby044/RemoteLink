@@ -1,0 +1,116 @@
+{% extends "base.html" %}
+
+
+{% block title %}
+Connect
+{% endblock %}
+
+
+{% block content %}
+
+<div class="connect-container">
+
+    <section class="connect-section">
+
+        <h1>
+            Connect to device
+        </h1>
+
+
+        <form id="connect-form">
+
+            <label for="host">
+                IP address or hostname
+            </label>
+
+
+            <input
+                type="text"
+                id="host"
+                name="host"
+                placeholder="192.168.1.1"
+                autocomplete="off"
+                required
+            >
+
+
+            <button type="submit">
+                Connect
+            </button>
+
+        </form>
+
+    </section>
+
+
+    <section class="scripts-section">
+
+        <h1>
+            Run a script
+        </h1>
+
+
+        {% if scripts %}
+
+        <p class="script-description">
+            Select a script to open a terminal session.
+        </p>
+
+
+        <ul class="script-list">
+
+            {% for name in scripts %}
+
+            <li class="script-item">
+
+                <a
+                    class="script-link"
+                    href="/terminal?script={{ name }}"
+                >
+
+                    <span class="script-icon">
+                        &gt;_
+                    </span>
+
+
+                    <span class="script-name">
+                        {{ name }}
+                    </span>
+
+
+                    <span class="script-arrow">
+                        ›
+                    </span>
+
+                </a>
+
+            </li>
+
+            {% endfor %}
+
+        </ul>
+
+
+        {% else %}
+
+        <div class="empty-scripts">
+
+            No scripts found. Add files to
+            <code>scripts/</code>.
+
+        </div>
+
+        {% endif %}
+
+    </section>
+
+</div>
+
+{% endblock %}
+
+
+{% block scripts %}
+
+<script src="/static/index.js"></script>
+
+{% endblock %}
