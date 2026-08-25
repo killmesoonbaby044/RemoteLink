@@ -58,7 +58,8 @@ class ProcessSession:
     async def run(self) -> None:
         path = resolve_script_path(self.name)
         command = build_command(path)
-
+        print("path->", path)
+        print("command->", command)
         await self._send_status(f"Starting {self.name}...")
 
         loop = asyncio.get_running_loop()
@@ -113,7 +114,7 @@ class ProcessSession:
                 logging.log(20, f"{script_path} {pc_name}")
                 await self.websocket.send_json(
                     {
-                        "type": "script_status_update",
+                        "type": "script",
                         "path": script_path,
                         "name": pc_name,
                     }

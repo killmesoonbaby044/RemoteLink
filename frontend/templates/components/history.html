@@ -4,9 +4,17 @@
 >
 
 <div class="terminal-history">
-    <table class="terminal-history-table">
-        <tbody id="terminal-history-body"></tbody>
-    </table>
+    <span
+        class="terminal-history-title"
+        id="terminal-history-title"
+    >
+        History
+    </span>
+
+    <div
+        class="terminal-history-menu"
+        id="terminal-history-body"
+    ></div>
 </div>
 
 <script>
@@ -14,27 +22,44 @@
         const history =
             JSON.parse(localStorage.getItem("terminal_history") || "[]");
 
-        const tableBody =
+        const historyBody =
             document.getElementById("terminal-history-body");
 
-        if (!tableBody) {
+        if (!historyBody) {
             return;
         }
 
-        tableBody.innerHTML = "";
+        historyBody.innerHTML = "";
 
         history.forEach((entry) => {
-            const row = document.createElement("tr");
+            const row =
+                document.createElement("div");
 
-            const iconCell = document.createElement("td");
-            const contentCell = document.createElement("td");
+            row.className =
+                "terminal-history-row";
 
-            const link = document.createElement("a");
+            const iconCell =
+                document.createElement("span");
+
+            iconCell.className =
+                "terminal-history-icon";
+
+            const contentCell =
+                document.createElement("span");
+
+            contentCell.className =
+                "terminal-history-content";
+
+            const link =
+                document.createElement("a");
 
             if (entry.type === "ssh") {
-                const icon = document.createElement("img");
+                const icon =
+                    document.createElement("img");
 
-                icon.src = "/static/components/ssh.ico";
+                icon.src =
+                    "/static/components/ssh.ico";
+
                 icon.alt = "SSH";
 
                 iconCell.appendChild(icon);
@@ -43,9 +68,12 @@
                     `/terminal?host=${encodeURIComponent(entry.host)}`;
 
                 link.target = "_blank";
-                link.rel = "noopener noreferrer";
 
-                link.textContent = entry.host;
+                link.rel =
+                    "noopener noreferrer";
+
+                link.textContent =
+                    entry.host;
 
             } else if (entry.type === "script") {
                 const pathParts =
@@ -67,20 +95,26 @@
                 const displayName =
                     `${directory}\\${filename} ${entry.name}`;
 
-                const icon = document.createElement("img");
+                const icon =
+                    document.createElement("img");
 
-                icon.src = "/static/components/script.ico";
+                icon.src =
+                    "/static/components/script.ico";
+
                 icon.alt = "Script";
 
                 iconCell.appendChild(icon);
 
                 link.href =
-                `/terminal?script=${encodeURIComponent(displayName)}`;
+                    `/terminal?script=${encodeURIComponent(displayName)}`;
 
                 link.target = "_blank";
-                link.rel = "noopener noreferrer";
 
-                link.textContent = displayName;
+                link.rel =
+                    "noopener noreferrer";
+
+                link.textContent =
+                    displayName;
 
             } else {
                 return;
@@ -91,9 +125,19 @@
             row.appendChild(iconCell);
             row.appendChild(contentCell);
 
-            tableBody.appendChild(row);
+            historyBody.appendChild(row);
         });
     }
 
     renderTerminalHistory();
+
+    document
+        .getElementById("terminal-history-title")
+        ?.addEventListener("click", () => {
+
+            document
+                .querySelector(".terminal-history")
+                ?.classList.toggle("terminal-history-open");
+
+        });
 </script>
