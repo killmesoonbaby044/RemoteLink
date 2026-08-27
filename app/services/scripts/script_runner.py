@@ -43,18 +43,21 @@ def resolve_script_path(name: str) -> Path:
     return candidate
 
 
-def build_command(path: Path) -> list[str]:
+def build_command(path: Path, arg: str | None = None) -> list[str]:
     """Pick an interpreter based on file extension. Falls back to
     executing the file directly, which needs a shebang + execute bit."""
 
     suffix = path.suffix.lower()
     if suffix in (".bat", ".cmd"):
-        return ["cmd", "/c", str(path)]
+        command = ["cmd", "/c", str(path)]
+    elif suffix == ".py":
+        command = ["python3", str(path)]
+    elif suffix in (".sh", ".bash"):
+        command = ["bash", str(path)]
+    else:
+        command = [str(path)]
 
-    if suffix == ".py":
-        return ["python3", str(path)]
+    if arg:
+        command.append(arg)
 
-    if suffix in (".sh", ".bash"):
-        return ["bash", str(path)]
-
-    return [str(path)]
+    return command

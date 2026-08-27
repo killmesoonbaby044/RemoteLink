@@ -9,8 +9,8 @@ from __future__ import annotations
 from fastapi import APIRouter, WebSocket
 from starlette.websockets import WebSocketDisconnect
 
-from app.services.process_session import ProcessSession
-from app.services.script_runner import InvalidScriptError
+from app.services.sessions.process_session import ProcessSession
+from app.services.scripts.script_runner import InvalidScriptError
 
 router = APIRouter()
 
@@ -22,13 +22,19 @@ async def script_terminal(websocket: WebSocket) -> None:
     session: ProcessSession | None = None
 
     try:
-        name = websocket.query_params.get("name") + ".cmd"
-        print("name->", name)
-        if not name:
+        raw_name = websocket.query_params.get("name")
+        if not raw_name:
             await _send_error(websocket, "Script name is required")
             return
 
-        session = ProcessSession(websocket, name)
+        # history.html packs "<path>|<arg>" into a single `name` value so a
+        # history entry can carry the parameter a nested script was
+        # originally run with (e.g. "pc\\cmd|PCADMIN"). A plain top-level
+        # name like "PC" has no "|" and arg comes back empty.
+        script_path, _, arg = raw_name.partition("|")
+        name = script_path + ".cmd"
+
+        session = ProcessSession(websocket, name, arg or None)
         await session.run()
 
     except InvalidScriptError as exc:

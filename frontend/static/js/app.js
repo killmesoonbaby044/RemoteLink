@@ -7,7 +7,7 @@ const terminal = new Terminal({
 });
 
 terminal.open(document.getElementById("terminal"));
-
+terminal.focus();
 const status = document.getElementById("status");
 
 const params = new URLSearchParams(window.location.search);
@@ -39,6 +39,22 @@ function handleSocketMessage(event) {
                 terminal.write(`\r\nERROR: ${message.message}\r\n`);
                 setStatus("Error");
                 return;
+            }
+            
+            if (message.type === "script") {
+                const historyKey = "terminal_history";
+                const history = JSON.parse(localStorage.getItem(historyKey) || "[]");
+
+                history.unshift({
+                    type: "script",
+                    path: message.path,
+                    name: message.name
+                });
+
+                // Keep only the 10 most recent entries
+                history.splice(10);
+
+                localStorage.setItem(historyKey, JSON.stringify(history));
             }
         } catch {
             terminal.write(event.data);

@@ -31,8 +31,8 @@ from pathlib import Path
 
 from fastapi import WebSocket
 
-from app.services.io_relay import relay
-from app.services.script_runner import build_command, resolve_script_path
+from app.services.sessions.io_relay import relay
+from app.services.scripts.script_runner import build_command, resolve_script_path
 
 IS_WINDOWS = sys.platform == "win32"
 
@@ -45,21 +45,24 @@ else:
 # so line-wrapping and cursor-addressed output line up correctly.
 _ROWS, _COLS = 30, 120
 _RUNNING_LINE = re.compile(r'^Running:\s+"([^"]+)"\s*(.*)$')
+_SEARCH_RESULTS_LINE = re.compile(
+    r"^SEARCH_RESULTS:\s*(.*)$",
+    re.MULTILINE,
+)
 
 
 class ProcessSession:
     """Bridges a local script's PTY stdio with a browser WebSocket."""
 
-    def __init__(self, websocket: WebSocket, name: str):
+    def __init__(self, websocket: WebSocket, name: str, arg: str | None = None):
         self.websocket = websocket
         self.name = name
+        self.arg = arg
         self.pty: PtyProcess | None = None
 
     async def run(self) -> None:
         path = resolve_script_path(self.name)
-        command = build_command(path)
-        print("path->", path)
-        print("command->", command)
+        command = build_command(path, self.arg)
         await self._send_status(f"Starting {self.name}...")
 
         loop = asyncio.get_running_loop()
@@ -117,6 +120,24 @@ class ProcessSession:
                         "type": "script",
                         "path": script_path,
                         "name": pc_name,
+                    }
+                )
+
+            search_match = _SEARCH_RESULTS_LINE.search(text_data)
+            if search_match:
+
+                raw_results = search_match.group(1).strip()
+
+                computers = [
+                    computer.strip()
+                    for computer in raw_results.split("|")
+                    if computer.strip()
+                ]
+
+                await self.websocket.send_json(
+                    {
+                        "type": "search_results",
+                        "computers": computers,
                     }
                 )
 

@@ -1,6 +1,6 @@
 <link
     rel="stylesheet"
-    href="/static/components/history.css"
+    href="/static/css/history.css"
 >
 
 <div class="terminal-history">
@@ -58,7 +58,7 @@
                     document.createElement("img");
 
                 icon.src =
-                    "/static/components/ssh.ico";
+                    "/static/icons/ssh.ico";
 
                 icon.alt = "SSH";
 
@@ -93,20 +93,29 @@
                         .replace(/\.[^/.]+$/, "");
 
                 const displayName =
-                    `${directory}\\${filename} ${entry.name}`;
+                    entry.name
+                        ? `${directory}\\${filename} ${entry.name}`
+                        : `${directory}\\${filename}`;
+
+                // "|" is invalid in Windows path segments, so it's a safe,
+                // reversible delimiter for packing path+arg into the single
+                // opaque `script` value that /terminal forwards straight
+                // through to /ws/script?name=...
+                const scriptRef =
+                    `${directory}\\${filename}|${entry.name}`;
 
                 const icon =
                     document.createElement("img");
 
                 icon.src =
-                    "/static/components/script.ico";
+                    "/static/icons/script.ico";
 
                 icon.alt = "Script";
 
                 iconCell.appendChild(icon);
 
                 link.href =
-                    `/terminal?script=${encodeURIComponent(displayName)}`;
+                    `/terminal?script=${encodeURIComponent(scriptRef)}`;
 
                 link.target = "_blank";
 
@@ -140,4 +149,20 @@
                 ?.classList.toggle("terminal-history-open");
 
         });
+
+    document.addEventListener("click", (event) => {
+        if (!event.target.closest(".terminal-history")) {
+            document
+                .querySelector(".terminal-history")
+                ?.classList.remove("terminal-history-open");
+        }
+    });
+
+    document.addEventListener("keydown", (event) => {
+        if (event.key === "Escape") {
+            document
+                .querySelector(".terminal-history")
+                ?.classList.remove("terminal-history-open");
+        }
+    });
 </script>

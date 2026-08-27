@@ -24,14 +24,23 @@ Connect
             </label>
 
 
-            <input
-                type="text"
-                id="host"
-                name="host"
-                placeholder="192.168.1.1"
-                autocomplete="off"
-                required
-            >
+            <div class="host-input-wrapper" id="host-input-wrapper">
+
+                <input
+                    type="text"
+                    id="host"
+                    name="host"
+                    placeholder="192.168.1.1"
+                    autocomplete="off"
+                    required
+                >
+
+                <div
+                    class="host-history-menu"
+                    id="host-history-menu"
+                ></div>
+
+            </div>
 
 
             <button type="submit">
@@ -108,9 +117,8 @@ Connect
 
 {% endblock %}
 
-
 {% block scripts %}
 
-<script src="/static/index.js"></script>
+<script src="/static/js/index.js"></script>
 
 {% endblock %}
