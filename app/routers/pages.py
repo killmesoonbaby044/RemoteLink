@@ -5,7 +5,7 @@ from __future__ import annotations
 from fastapi import Request, APIRouter
 from fastapi.responses import HTMLResponse
 
-from app.services.scripts.script_runner import list_scripts
+from app.services.scripts.script_runner import list_scripts, list_pc_scripts
 from app.templating import templates
 
 router = APIRouter()
@@ -17,7 +17,7 @@ async def index(request: Request):
     return templates.TemplateResponse(
         request=request,
         name="pages/index.html",
-        context={"scripts": list_scripts()},
+        context={"scripts": list_scripts(), "pc_scripts": list_pc_scripts()},
     )
     # return templates.TemplateResponse(request=request, name="index.html")
 

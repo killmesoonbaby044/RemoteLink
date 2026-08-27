@@ -27,6 +27,18 @@ def list_scripts() -> list[str]:
     )
 
 
+def list_pc_scripts() -> list[str]:
+    """Names of runnable files sitting directly inside SCRIPTS_DIR."""
+    pc_dir = (SCRIPTS_DIR / "pc").resolve()
+
+    if not pc_dir.exists():
+        return []
+
+    return sorted(
+        p.stem for p in pc_dir.iterdir() if p.is_file() and not p.name.startswith(".")
+    )
+
+
 def resolve_script_path(name: str) -> Path:
     """Resolve `name` to a file inside SCRIPTS_DIR, rejecting traversal
     (e.g. "../../etc/passwd") or anything that escapes SCRIPTS_DIR."""

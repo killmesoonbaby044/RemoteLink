@@ -52,6 +52,95 @@ Connect
     </section>
 
 
+    <section class="connect-section search-section">
+
+        <h1>
+            Search PC
+        </h1>
+
+        <p class="script-description">
+            Search by name, then select one to connect.
+        </p>
+
+
+        <form id="pc-search-form">
+
+            <label for="pc-search-query">
+                PC name
+            </label>
+
+            <input
+                type="text"
+                id="pc-search-query"
+                name="query"
+                placeholder="PCADMIN"
+                autocomplete="off"
+                required
+            >
+
+            <button type="submit">
+                Search
+            </button>
+
+        </form>
+
+
+        <p class="search-status" id="pc-search-status"></p>
+
+        <ul class="pc-search-results" id="pc-search-results"></ul>
+
+
+        <div class="pc-scripts-block" id="pc-scripts-section" hidden>
+
+            {% if pc_scripts %}
+
+            <p class="script-description">
+                Run a script for
+                <strong id="pc-scripts-target"></strong>:
+            </p>
+
+
+            <ul class="script-list">
+
+                {% for name in pc_scripts %}
+
+                <li class="script-item">
+
+                    <a
+                        class="script-link pc-script-link"
+                        href="#"
+                        data-script="{{ name }}"
+                    >
+
+                        <span class="script-icon">
+                            &gt;_
+                        </span>
+
+
+                        <span class="script-name">
+                            {{ name }}
+                        </span>
+
+
+                        <span class="script-arrow">
+                            ›
+                        </span>
+
+                    </a>
+
+                </li>
+
+                {% endfor %}
+
+            </ul>
+
+            {% endif %}
+
+        </div>
+
+    </section>
+
+
     <section class="scripts-section">
 
         <h1>
