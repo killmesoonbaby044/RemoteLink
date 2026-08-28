@@ -27,9 +27,9 @@ def list_scripts() -> list[str]:
     )
 
 
-def list_pc_scripts() -> list[str]:
+def list_scoped_scripts(name) -> list[str]:
     """Names of runnable files sitting directly inside SCRIPTS_DIR."""
-    pc_dir = (SCRIPTS_DIR / "pc").resolve()
+    pc_dir = (SCRIPTS_DIR / name).resolve()
 
     if not pc_dir.exists():
         return []

@@ -1,0 +1,143 @@
+/* =========================
+   Connect page: card + two-column row
+   ========================= */
+
+.connect-section {
+    margin-bottom: 40px;
+    padding: 32px;
+
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg);
+}
+
+.script-description {
+    margin: 0 0 25px 0;
+    color: var(--color-text-muted);
+    font-size: 14.5px;
+}
+
+/* Two cards side by side (used for "Search users" + "Search PC" on the
+   home page; reused for any future paired blocks).
+   Grid with minmax(0, 1fr) columns guarantees the two cards are always
+   exactly equal width and always fill the row -- a proportion of the
+   container, never a fixed px value, and immune to the "shrinks to
+   content" trap flex:1 can fall into with wrapping children.
+   align-items: start makes each card size to its own content only, so
+   growth in one (search results) never resizes the other. */
+.connect-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    align-items: start;
+    gap: 24px;
+    margin-bottom: 40px;
+}
+
+.connect-row .connect-section {
+    margin-bottom: 0;
+}
+
+
+/* =========================
+   Input + submit button, side by side
+   ========================= */
+
+.input-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.input-row > .autosuggest {
+    flex: 1;
+    min-width: 160px;
+}
+
+.app-form .input-row input {
+    margin-bottom: 0;
+    width: 100%;
+}
+
+.app-form .input-row button {
+    margin-top: 0;
+    white-space: nowrap;
+}
+
+
+/* =========================
+   Autosuggest dropdown (host field, user/PC-search fields, ...)
+   ========================= */
+
+.autosuggest {
+    position: relative;
+}
+
+.autosuggest-menu {
+    display: none;
+
+    position: absolute;
+    top: calc(100% + 6px);
+    left: 0;
+    right: 0;
+
+    max-height: 220px;
+    overflow-y: auto;
+
+    background: var(--color-surface);
+    border: 1px solid var(--color-border-strong);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-md);
+
+    z-index: 10;
+}
+
+.autosuggest-menu.autosuggest-open {
+    display: block;
+    animation: autosuggest-menu-in var(--transition-base);
+}
+
+@keyframes autosuggest-menu-in {
+    from {
+        opacity: 0;
+        transform: translateY(-6px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.autosuggest-row {
+    padding: 10px 14px;
+
+    color: var(--color-text-secondary);
+    font-family: var(--font-mono);
+    font-size: 14px;
+
+    cursor: pointer;
+    border-bottom: 1px solid var(--color-border);
+
+    transition: background var(--transition-fast), color var(--transition-fast);
+}
+
+.autosuggest-row:last-child {
+    border-bottom: none;
+}
+
+.autosuggest-row:hover {
+    background: var(--color-surface-2);
+    color: var(--color-text);
+}
+
+
+@media (max-width: 600px) {
+    .connect-row {
+        grid-template-columns: 1fr;
+        margin-bottom: 0;
+    }
+
+    .connect-row .connect-section {
+        margin-bottom: 40px;
+    }
+}

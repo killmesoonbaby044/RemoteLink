@@ -5,7 +5,7 @@ from __future__ import annotations
 from fastapi import Request, APIRouter
 from fastapi.responses import HTMLResponse
 
-from app.services.scripts.script_runner import list_scripts, list_pc_scripts
+from app.services.scripts.script_runner import list_scoped_scripts
 from app.templating import templates
 
 router = APIRouter()
@@ -17,9 +17,25 @@ async def index(request: Request):
     return templates.TemplateResponse(
         request=request,
         name="pages/index.html",
-        context={"scripts": list_scripts(), "pc_scripts": list_pc_scripts()},
+        context={
+            "pc_scripts": list_scoped_scripts("pc"),
+            "user_scripts": list_scoped_scripts("user"),
+            "pc_search_script": "root\\search_pcs",
+            "user_search_script": "root\\search_users",
+        },
     )
-    # return templates.TemplateResponse(request=request, name="index.html")
+
+
+@router.get("/connect", response_class=HTMLResponse)
+async def connect_page(
+    request: Request, host: str | None = None, script: str | None = None
+):
+    """SSH sessions for unix and switch."""
+
+    return templates.TemplateResponse(
+        request=request,
+        name="pages/connect.html",
+    )
 
 
 @router.get("/credentials", response_class=HTMLResponse)

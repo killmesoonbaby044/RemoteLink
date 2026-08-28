@@ -1,0 +1,120 @@
+/* =========================
+   Shared form layout (Connect / Credentials / Search)
+   ========================= */
+
+.connect-container {
+    max-width: 1240px;
+    margin: 40px auto;
+}
+
+.connect-container h1 {
+    margin: 0 0 8px 0;
+    font-size: 26px;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    color: var(--color-text);
+}
+
+/* Every form in the app (connect, credentials, search-users, search-pc, ...)
+   carries this class so styling lives in one place instead of a growing
+   list of #form-id selectors -- adding a new form is just class="app-form"
+   on the <form>, no CSS changes needed. */
+.app-form {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.app-form label {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--color-text-secondary);
+    letter-spacing: 0.02em;
+}
+
+.app-form input {
+    padding: 12px 14px;
+    margin-bottom: 6px;
+
+    background: var(--color-surface-2);
+    color: var(--color-text);
+    font-family: inherit;
+    font-size: 15px;
+
+    border: 1px solid var(--color-border-strong);
+    border-radius: var(--radius-md);
+
+    transition:
+        border-color var(--transition-fast),
+        box-shadow var(--transition-fast),
+        background var(--transition-fast);
+}
+
+.app-form input::placeholder {
+    color: var(--color-text-muted);
+}
+
+.app-form input:hover {
+    border-color: var(--color-text-muted);
+}
+
+.app-form input:focus {
+    outline: none;
+    border-color: var(--color-accent);
+    box-shadow: 0 0 0 3px var(--color-accent-soft);
+}
+
+.app-form button {
+    margin-top: 8px;
+    padding: 13px 20px;
+
+    border: none;
+    border-radius: var(--radius-md);
+
+    background: var(--color-accent);
+    color: white;
+    font-size: 15px;
+    font-weight: 600;
+    letter-spacing: 0.01em;
+
+    cursor: pointer;
+    box-shadow: var(--shadow-sm);
+
+    transition:
+        filter var(--transition-fast),
+        box-shadow var(--transition-fast),
+        transform var(--transition-fast);
+}
+
+.app-form button:hover {
+    filter: brightness(1.12);
+    box-shadow: 0 4px 16px var(--color-accent-soft);
+}
+
+.app-form button:active {
+    filter: brightness(0.95);
+    transform: translateY(1px);
+    box-shadow: var(--shadow-sm);
+}
+
+.app-form button:focus-visible {
+    outline: 2px solid var(--color-accent);
+    outline-offset: 2px;
+}
+
+#credentials-status {
+    margin-top: 14px;
+    min-height: 20px;
+    color: var(--color-text-secondary);
+    font-size: 14px;
+}
+
+@media (max-width: 600px) {
+    .connect-container {
+        margin: 20px auto;
+    }
+
+    .connect-section {
+        padding: 22px;
+    }
+}

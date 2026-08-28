@@ -15,7 +15,7 @@ for /f "tokens=2 delims==," %%a in ('
 ') do (
     set /a count+=1
 
-    if !count! LEQ 15 (
+    if !count! LEQ 16 (
         set "pc=%%a"
 
         if defined results (

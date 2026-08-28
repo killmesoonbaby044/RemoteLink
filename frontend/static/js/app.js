@@ -1,3 +1,8 @@
+import { openTypedSocket } from "./common/ws.js";
+import { pushHistory } from "./common/history.js";
+import { getCredentials } from "./common/credentials.js";
+import { scriptRefLabel } from "./common/script-ref.js";
+
 const terminal = new Terminal({
     cursorBlink: true,
     convertEol: true,
@@ -8,94 +13,67 @@ const terminal = new Terminal({
 
 terminal.open(document.getElementById("terminal"));
 terminal.focus();
-const status = document.getElementById("status");
+
+const statusEl = document.getElementById("status");
 
 const params = new URLSearchParams(window.location.search);
-
 const host = params.get("host");
 const script = params.get("script");
 
-
 function setStatus(text) {
-    status.textContent = text;
+    statusEl.textContent = text;
 }
 
-function wsUrl(path) {
-    const protocol = window.location.protocol === "https:" ? "wss" : "ws";
-    return `${protocol}://${window.location.host}${path}`;
+// The server already renders a host/script-aware <title> (see
+// terminal.html), this just refines it once the script's packed
+// "path|arg" ref is available client-side, since the target PC name
+// (the arg) is usually more useful in a tab than the raw script path.
+if (script) {
+    document.title = scriptRefLabel(script);
+} else if (host) {
+    document.title = host;
 }
 
-function handleSocketMessage(event) {
-    if (typeof event.data === "string") {
-        try {
-            const message = JSON.parse(event.data);
-
-            if (message.type === "status") {
-                setStatus(message.message);
-                return;
-            }
-
-            if (message.type === "error") {
+// Shared by both SSH and script sessions: both are just a WebSocket that
+// streams terminal bytes in and takes raw keystrokes back. This one
+// function is the single place that "connect to ws" happens for the
+// terminal page -- connectSSH/runScript only differ in the URL and what
+// they do on open/extra message types.
+function openTerminalSocket(path, { onOpen, extraTypes = {} } = {}) {
+    const socket = openTypedSocket(path, {
+        binaryType: "arraybuffer",
+        onOpen,
+        onError: () => {
+            setStatus("WebSocket error");
+            terminal.write("\r\nWebSocket error\r\n");
+        },
+        onClose: () => {
+            setStatus("Disconnected");
+            terminal.write("\r\nConnection closed\r\n");
+        },
+        onRaw: (text) => terminal.write(text),
+        onBinary: (buffer) => terminal.write(new TextDecoder("utf-8").decode(buffer)),
+        types: {
+            status: (message) => setStatus(message.message),
+            error: (message) => {
                 terminal.write(`\r\nERROR: ${message.message}\r\n`);
                 setStatus("Error");
-                return;
-            }
-            
-            if (message.type === "script") {
-                const historyKey = "terminal_history";
-                const history = JSON.parse(localStorage.getItem(historyKey) || "[]");
-
-                history.unshift({
-                    type: "script",
-                    path: message.path,
-                    name: message.name
-                });
-
-                // Keep only the 10 most recent entries
-                history.splice(10);
-
-                localStorage.setItem(historyKey, JSON.stringify(history));
-            }
-        } catch {
-            terminal.write(event.data);
-        }
-
-        return;
-    }
-
-    if (event.data instanceof ArrayBuffer) {
-        const text = new TextDecoder("utf-8").decode(event.data);
-        terminal.write(text);
-    }
-}
-
-// Shared by both SSH and script sessions: both are just a WebSocket
-// that streams terminal bytes in and takes raw keystrokes back.
-function attachSession(socket) {
-    socket.binaryType = "arraybuffer";
-
-    socket.onmessage = handleSocketMessage;
-
-    socket.onerror = () => {
-        setStatus("WebSocket error");
-        terminal.write("\r\nWebSocket error\r\n");
-    };
-
-    socket.onclose = () => {
-        setStatus("Disconnected");
-        terminal.write("\r\nConnection closed\r\n");
-    };
+            },
+            ...extraTypes,
+        },
+    });
 
     terminal.onData((data) => {
         if (socket.readyState === WebSocket.OPEN) {
             socket.send(data);
         }
     });
+
+    return socket;
 }
 
-function connectSSH(host) {
-    const username = localStorage.getItem("ssh_username");
-    const password = localStorage.getItem("ssh_password");
+function connectSSH(targetHost) {
+    const { username, password } = getCredentials();
 
     if (!username || !password) {
         setStatus("Credentials are not configured");
@@ -103,27 +81,27 @@ function connectSSH(host) {
         return;
     }
 
-    const socket = new WebSocket(wsUrl(`/ws/ssh?host=${encodeURIComponent(host)}`));
-    attachSession(socket);
-
-    socket.onopen = () => {
-        setStatus(`Authenticating to ${host}...`);
-        socket.send(JSON.stringify({ type: "auth", username, password }));
-    };
+    openTerminalSocket(`/ws/ssh?host=${encodeURIComponent(targetHost)}`, {
+        onOpen: (socket) => {
+            setStatus(`Authenticating to ${targetHost}...`);
+            socket.send(JSON.stringify({ type: "auth", username, password }));
+        },
+    });
 }
 
 function runScript(name) {
     // Fully interactive: the server runs this script inside a PTY, so
-    // prompts, typed input, and keystrokes flow both ways in real
-    // time, same as an SSH session.
-    const socket = new WebSocket(wsUrl(`/ws/script?name=${encodeURIComponent(name)}`));
-    attachSession(socket);
-
-    socket.onopen = () => {
-        setStatus(`Starting ${name}...`);
-    };
+    // prompts, typed input, and keystrokes flow both ways in real time,
+    // same as an SSH session.
+    openTerminalSocket(`/ws/script?name=${encodeURIComponent(name)}`, {
+        onOpen: () => setStatus(`Starting ${name}...`),
+        extraTypes: {
+            script: (message) => {
+                pushHistory({ type: "script", path: message.path, name: message.name });
+            },
+        },
+    });
 }
-
 
 if (script) {
     runScript(script);

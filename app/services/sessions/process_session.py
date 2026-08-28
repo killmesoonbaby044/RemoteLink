@@ -66,7 +66,6 @@ class ProcessSession:
         await self._send_status(f"Starting {self.name}...")
 
         loop = asyncio.get_running_loop()
-
         # spawn() does the fork/exec (or CreateProcess on Windows) --
         # off the event loop just in case it's slow to come up.
         self.pty = await loop.run_in_executor(

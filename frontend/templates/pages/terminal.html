@@ -2,7 +2,7 @@
 
 
 {% block title %}
-Terminal
+{{ host if host else (script if script else "Terminal") }}
 {% endblock %}
 
 
@@ -11,6 +11,11 @@ Terminal
 <link
     rel="stylesheet"
     href="/static/vendor/xterm.css"
+>
+
+<link
+    rel="stylesheet"
+    href="/static/css/terminal.css"
 >
 
 {% endblock %}
@@ -62,6 +67,6 @@ Terminal
 
 <script src="/static/vendor/xterm.js"></script>
 
-<script src="/static/js/app.js"></script>
+<script type="module" src="/static/js/app.js"></script>
 
 {% endblock %}

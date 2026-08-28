@@ -1,0 +1,25 @@
+{# A text input with an (optional, JS-driven) history dropdown underneath
+   it. Used for both the "Connect to device" host field and the
+   "Search PC" query field so they share identical markup, styling, and
+   behavior instead of drifting apart. See static/js/common/autosuggest.js
+   and static/js/index.js for the wiring. #}
+
+{% macro autosuggest_input(id, name, placeholder) %}
+<div class="autosuggest" id="{{ id }}-wrapper">
+
+    <input
+        type="text"
+        id="{{ id }}"
+        name="{{ name }}"
+        placeholder="{{ placeholder }}"
+        autocomplete="off"
+        required
+    >
+
+    <div
+        class="autosuggest-menu"
+        id="{{ id }}-menu"
+    ></div>
+
+</div>
+{% endmacro %}

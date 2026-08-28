@@ -6,6 +6,8 @@ opens an SSH connection) all work like a normal terminal.
 
 from __future__ import annotations
 
+import re
+
 from fastapi import APIRouter, WebSocket
 from starlette.websockets import WebSocketDisconnect
 
@@ -33,6 +35,10 @@ async def script_terminal(websocket: WebSocket) -> None:
         # name like "PC" has no "|" and arg comes back empty.
         script_path, _, arg = raw_name.partition("|")
         name = script_path + ".cmd"
+        if arg is not None:
+            match = re.search(r"\[(.*)]", arg)
+            if match:
+                arg = match.group(1)
 
         session = ProcessSession(websocket, name, arg or None)
         await session.run()

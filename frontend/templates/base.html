@@ -10,12 +10,12 @@
     <link rel="icon" type="image/x-icon" href="/static/icons/favicon.ico">
     <title>{% block title %}RemoteLink{% endblock %}</title>
 
-    {% block head %}{% endblock %}
-
     <link
         rel="stylesheet"
-        href="/static/css/style.css"
+        href="/static/css/base.css"
     >
+
+    {% block head %}{% endblock %}
 </head>
 
 <body>
@@ -31,6 +31,10 @@
 
         <nav class="nav">
             {% include "components/history.html" %}
+
+            <a href="/connect">
+                Connect
+            </a>
 
             <a href="/credentials">
                 Credentials
@@ -50,6 +54,8 @@
 
 </main>
 
+
+<script type="module" src="/static/js/terminal-history-widget.js"></script>
 
 {% block scripts %}
 {% endblock %}

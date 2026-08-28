@@ -1,8 +1,20 @@
 {% extends "base.html" %}
+{% from "macros/autosuggest_input.html" import autosuggest_input %}
+{% from "macros/script_list.html" import script_list %}
 
 
 {% block title %}
-Connect
+Search
+{% endblock %}
+
+
+{% block head %}
+
+<link rel="stylesheet" href="/static/css/connect.css">
+<link rel="stylesheet" href="/static/css/forms.css">
+<link rel="stylesheet" href="/static/css/search.css">
+<link rel="stylesheet" href="/static/css/script-list.css">
+
 {% endblock %}
 
 
@@ -10,204 +22,122 @@ Connect
 
 <div class="connect-container">
 
-    <section class="connect-section">
+    <div class="connect-row">
 
-        <h1>
-            Connect to device
-        </h1>
+        <section class="connect-section search-section">
 
-
-        <form id="connect-form">
-
-            <label for="host">
-                IP address or hostname
-            </label>
-
-
-            <div class="host-input-wrapper" id="host-input-wrapper">
-
-                <input
-                    type="text"
-                    id="host"
-                    name="host"
-                    placeholder="192.168.1.1"
-                    autocomplete="off"
-                    required
-                >
-
-                <div
-                    class="host-history-menu"
-                    id="host-history-menu"
-                ></div>
-
-            </div>
-
-
-            <button type="submit">
-                Connect
-            </button>
-
-        </form>
-
-    </section>
-
-
-    <section class="connect-section search-section">
-
-        <h1>
-            Search PC
-        </h1>
-
-        <p class="script-description">
-            Search by name, then select one to connect.
-        </p>
-
-
-        <form id="pc-search-form">
-
-            <label for="pc-search-query">
-                PC name
-            </label>
-
-            <input
-                type="text"
-                id="pc-search-query"
-                name="query"
-                placeholder="PCADMIN"
-                autocomplete="off"
-                required
-            >
-
-            <button type="submit">
-                Search
-            </button>
-
-        </form>
-
-
-        <p class="search-status" id="pc-search-status"></p>
-
-        <ul class="pc-search-results" id="pc-search-results"></ul>
-
-
-        <div class="pc-scripts-block" id="pc-scripts-section" hidden>
-
-            {% if pc_scripts %}
+            <h1>
+                Search users
+            </h1>
 
             <p class="script-description">
-                Run a script for
-                <strong id="pc-scripts-target"></strong>:
+                Search by name, then select one to continue.
             </p>
 
 
-            <ul class="script-list">
+            <form id="user-search-form" class="app-form" data-search-script="{{ user_search_script | default('search_user') }}">
 
-                {% for name in pc_scripts %}
+                <label for="user-search-query">
+                    Username
+                </label>
 
-                <li class="script-item">
+                <div class="input-row">
 
-                    <a
-                        class="script-link pc-script-link"
-                        href="#"
-                        data-script="{{ name }}"
-                    >
+                    {{ autosuggest_input("user-search-query", "query", "jdoe") }}
 
-                        <span class="script-icon">
-                            &gt;_
-                        </span>
+                    <button type="submit">
+                        Search
+                    </button>
 
+                </div>
 
-                        <span class="script-name">
-                            {{ name }}
-                        </span>
+            </form>
 
 
-                        <span class="script-arrow">
-                            ›
-                        </span>
+            <p class="search-status" id="user-search-status"></p>
 
-                    </a>
+            <div class="search-results" id="user-search-results"></div>
 
-                </li>
-
-                {% endfor %}
-
-            </ul>
-
-            {% endif %}
-
-        </div>
-
-    </section>
+        </section>
 
 
-    <section class="scripts-section">
+        <section class="connect-section search-section">
 
-        <h1>
-            Run a script
-        </h1>
+            <h1>
+                Search PC
+            </h1>
+
+            <p class="script-description">
+                Search by name, then select one to connect.
+            </p>
 
 
-        {% if scripts %}
+            <form id="pc-search-form" class="app-form" data-search-script="{{ pc_search_script | default('search_pc') }}">
+
+                <label for="pc-search-query">
+                    PC name
+                </label>
+
+                <div class="input-row">
+
+                    {{ autosuggest_input("pc-search-query", "query", "PCADMIN") }}
+
+                    <button type="submit">
+                        Search
+                    </button>
+
+                </div>
+
+            </form>
+
+
+            <p class="search-status" id="pc-search-status"></p>
+
+            <div class="search-results" id="pc-search-results"></div>
+
+        </section>
+
+    </div>
+
+
+    {% if user_scripts %}
+
+    <section class="connect-section user-scripts-block" id="user-scripts-section" hidden>
 
         <p class="script-description">
-            Select a script to open a terminal session.
+            Run a script for
+            <strong id="user-scripts-target"></strong>:
         </p>
 
-
-        <ul class="script-list">
-
-            {% for name in scripts %}
-
-            <li class="script-item">
-
-                <a
-                    class="script-link"
-                    href="/terminal?script={{ name }}"
-                >
-
-                    <span class="script-icon">
-                        &gt;_
-                    </span>
-
-
-                    <span class="script-name">
-                        {{ name }}
-                    </span>
-
-
-                    <span class="script-arrow">
-                        ›
-                    </span>
-
-                </a>
-
-            </li>
-
-            {% endfor %}
-
-        </ul>
-
-
-        {% else %}
-
-        <div class="empty-scripts">
-
-            No scripts found. Add files to
-            <code>scripts/</code>.
-
-        </div>
-
-        {% endif %}
+        {{ script_list(user_scripts, mode="data", target_class="user-script-link") }}
 
     </section>
+
+    {% endif %}
+
+
+    {% if pc_scripts %}
+
+    <section class="connect-section pc-scripts-block" id="pc-scripts-section" hidden>
+
+        <p class="script-description">
+            Run a script for
+            <strong id="pc-scripts-target"></strong>:
+        </p>
+
+        {{ script_list(pc_scripts, mode="data", target_class="pc-script-link") }}
+
+    </section>
+
+    {% endif %}
 
 </div>
 
 {% endblock %}
 
+
 {% block scripts %}
 
-<script src="/static/js/index.js"></script>
+<script type="module" src="/static/js/index.js"></script>
 
 {% endblock %}

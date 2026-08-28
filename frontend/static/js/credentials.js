@@ -1,27 +1,11 @@
-const form = document.getElementById(
-    "credentials-form"
-);
+import { getCredentials, saveCredentials } from "./common/credentials.js";
 
-const usernameInput = document.getElementById(
-    "username"
-);
+const form = document.getElementById("credentials-form");
+const usernameInput = document.getElementById("username");
+const passwordInput = document.getElementById("password");
+const status = document.getElementById("credentials-status");
 
-const passwordInput = document.getElementById(
-    "password"
-);
-
-const status = document.getElementById(
-    "credentials-status"
-);
-
-
-// Load existing credentials
-const savedUsername =
-    localStorage.getItem("ssh_username");
-
-const savedPassword =
-    localStorage.getItem("ssh_password");
-
+const { username: savedUsername, password: savedPassword } = getCredentials();
 
 if (savedUsername) {
     usernameInput.value = savedUsername;
@@ -31,39 +15,18 @@ if (savedPassword) {
     passwordInput.value = savedPassword;
 }
 
+form.addEventListener("submit", (event) => {
+    event.preventDefault();
 
-// Save credentials
-form.addEventListener(
-    "submit",
-    (event) => {
+    const username = usernameInput.value.trim();
+    const password = passwordInput.value;
 
-        event.preventDefault();
-
-        const username =
-            usernameInput.value.trim();
-
-        const password =
-            passwordInput.value;
-
-
-        if (!username || !password) {
-            return;
-        }
-
-
-        localStorage.setItem(
-            "ssh_username",
-            username
-        );
-
-        localStorage.setItem(
-            "ssh_password",
-            password
-        );
-
-
-        status.textContent =
-            "Credentials saved.";
-        window.location.replace('/')
+    if (!username || !password) {
+        return;
     }
-);
+
+    saveCredentials(username, password);
+
+    status.textContent = "Credentials saved.";
+    window.location.replace("/");
+});
