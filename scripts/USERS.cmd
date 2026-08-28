@@ -4,7 +4,8 @@ setlocal enabledelayedexpansion
 echo --------------------
 echo 1.CHANGE PASSWORD 2.CREATE USER or Q to quit
 echo .
-set /p "enter=CHOOSE YOUR HERO: "
+set /p "enter=Enter number to select or Q to quit: "
+
 if /i "%enter%"=="1" (
     echo Running: "C:\apps\RemoteLink\scripts\users\password.cmd"
 	call "C:\apps\RemoteLink\scripts\users\password.cmd"
