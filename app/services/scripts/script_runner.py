@@ -60,12 +60,22 @@ def build_command(path: Path, arg: str | None = None) -> list[str]:
     executing the file directly, which needs a shebang + execute bit."""
 
     suffix = path.suffix.lower()
+
     if suffix in (".bat", ".cmd"):
         command = ["cmd", "/c", str(path)]
     elif suffix == ".py":
         command = ["python3", str(path)]
     elif suffix in (".sh", ".bash"):
         command = ["bash", str(path)]
+    elif suffix == ".ps1":
+        command = [
+            "powershell",
+            "-NoProfile",
+            "-ExecutionPolicy",
+            "Bypass",
+            "-File",
+            str(path),
+        ]
     else:
         command = [str(path)]
 

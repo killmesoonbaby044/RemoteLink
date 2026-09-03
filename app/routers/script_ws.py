@@ -34,7 +34,10 @@ async def script_terminal(websocket: WebSocket) -> None:
         # originally run with (e.g. "pc\\cmd|PCADMIN"). A plain top-level
         # name like "PC" has no "|" and arg comes back empty.
         script_path, _, arg = raw_name.partition("|")
-        name = script_path + ".cmd"
+        if "ps" in script_path:
+            name = script_path + ".ps1"
+        else:
+            name = script_path + ".cmd"
         if arg is not None:
             match = re.search(r"\[(.*)]", arg)
             if match:
