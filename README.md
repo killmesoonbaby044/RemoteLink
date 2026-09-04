@@ -66,7 +66,7 @@ Only needed by the auth layer below, and not yet exercised by the running app:  
    - `scripts/root/search_pcs.*` and `scripts/root/search_users.*` — the two search scripts the home page expects (see `pc_search_script`/`user_search_script` in `app/routers/pages.py`); each should print a line like `SEARCH_RESULTS: name1|name2|name3` to stdout.
 3. Run it:
    ```bash
-   uvicorn main:app --reload
+   uv run python main.py 
    ```
 4. Visit `http://localhost:8000`.
 
