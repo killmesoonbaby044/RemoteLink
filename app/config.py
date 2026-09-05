@@ -6,7 +6,9 @@ where it's launched from.
 """
 
 from pathlib import Path
+from uuid import UUID
 
+from pydantic import BaseModel
 from starlette.templating import Jinja2Templates
 
 # Project root: one level above this "backend" package.
@@ -21,3 +23,18 @@ SCRIPTS_DIR = BASE_DIR / "scripts"
 SCRIPTS_DIR.mkdir(parents=True, exist_ok=True)
 
 SSH_PORT = 22
+
+
+class TokenName(BaseModel):
+    access_token: str = "access_token"
+
+
+token_name = TokenName()
+
+
+class AccessToken(BaseModel):
+    sub: str
+    exp: int
+    iss: str
+    aud: str
+    instance_id: UUID

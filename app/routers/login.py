@@ -1,18 +1,14 @@
-from fastapi import APIRouter
+import httpx
+from fastapi import APIRouter, HTTPException
 from loguru import logger
-from pydantic import BaseModel
 from starlette.requests import Request
 from starlette.responses import Response
 
-from app.core.client.http import HttpClient
+from app.config import token_name
+from app.core.schemas import Login
 from app.settings import get_config
 
 router = APIRouter()
-
-
-class Login(BaseModel):
-    username: str
-    password: str
 
 
 @router.post("/auth")
@@ -21,16 +17,31 @@ async def login(
     response: Response,
     login_user: Login,
 ):
+    config = get_config()
     logger.info(
         f" From {request.client.host} trying to login with login {login_user.username!r} -> via LDAP"
     )
-    client = HttpClient(get_config().AUTH_API)
-    response = await client.post("/", json=login_user.dict())
-    # tokens = await auth_service.login_ldap(login_user=login_user)
-    #
-    # set_auth_cookies(response, tokens)
-    # logger.info(
-    #     f"User {login_user.username!r} -> {request.client.host} logged in via LDAP"
-    # )
 
-    return {"message": [response.json(), response.status_code]}
+    resp: httpx.Response = await request.app.state.http_client.post(
+        "/login",
+        json={
+            **login_user.model_dump(mode="json"),
+            "instance_id": request.app.state.INSTANCE_ID,
+        },
+    )
+
+    if resp.status_code >= 400:
+        raise HTTPException(
+            status_code=resp.status_code, detail=resp.json().get("detail")
+        )
+    token = resp.json()["access_token"]
+    response.set_cookie(
+        token_name.access_token,
+        token,
+        httponly=True,
+        samesite="strict",
+        max_age=config.jwt_expires,
+    )
+    logger.info(f"User {login_user.username!r} -> {request.client.host} logged in")
+
+    return {"message": "ok"}

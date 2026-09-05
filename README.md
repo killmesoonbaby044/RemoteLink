@@ -9,6 +9,7 @@ A browser-based remote administration console. It gives support/ops staff one we
 - **Entity search → scoped scripts** — the home page (`/`) has "Search users" and "Search PC" boxes. Each runs a search script, parses `SEARCH_RESULTS: name1|name2|...` lines out of its output, and lets you pick a result to reveal scripts scoped to that user/PC (`scripts/user/*`, `scripts/pc/*`), pre-filled with the picked name as an argument.
 - **Credentials page** — SSH username/password entered once on `/credentials` and reused for every SSH connection (stored in the browser's `localStorage`, not on the server).
 - **Connection history** — the last 10 SSH connections and script runs are kept client-side and surfaced as a "History" dropdown in the header and as autosuggest options on the host/search fields.
+- **Authentication** — every page and WebSocket route (aside from `/login`/`/auth`) requires a valid JWT, issued at login and stored as an HTTP-only cookie. Missing/invalid/expired tokens are treated as unauthorized (401); a token that doesn't match the running app instance or the configured owner is treated as forbidden (403).
 
 ## How it works
 
@@ -17,14 +18,29 @@ Both SSH sessions and script runs use the same model: the backend opens either a
 - `GET /terminal?host=<host>` → connects to `/ws/ssh`, which expects an `{type: "auth", username, password}` message first.
 - `GET /terminal?script=<name>` → connects to `/ws/script?name=<name>`, which resolves `<name>` inside `scripts/` (rejecting path traversal), picks an interpreter by file extension, and spawns it.
 
+### Authentication flow
+
+- `POST /auth` validates credentials and, on success, sets the JWT as a cookie and returns `{"redirect": ...}`; on failure it returns `401`/`403` with a `{"detail": "..."}` message that `login.js` renders directly under the form.
+- Protected page routes depend on `validate_user`, which decodes the cookie's JWT and checks it against the running app's instance ID and configured owner. Failures raise `InvalidTokenError` / `HTTPException(403)`, which are converted to JSON `401`/`403` responses by the registered exception handlers.
+- `AuthRedirectMiddleware` inspects every HTTP response after that: if the status is `401`/`403` **and** the request looks like a real page navigation (`Accept: text/html`), it redirects to `/login` or `/stub` instead of returning raw JSON. Plain `fetch()` calls (which don't send `Accept: text/html`) get the JSON straight through.
+- `frontend/static/js/auth.js` patches `window.fetch` to redirect on `401`/`403` for any other API call the frontend makes, so page scripts don't each need their own auth-handling logic. It explicitly ignores `/auth` itself, so a failed login shows its message instead of bouncing back to `/login`.
+- WebSocket routes can't return an HTTP status or be redirected server-side, so they authenticate right after `accept()` via `authenticate_websocket` (same JWT checks as `validate_user`) and close the socket with a custom code instead: `4401` for unauthorized, `4403` for forbidden. `frontend/static/js/common/ws.js` reads that close code and redirects the browser accordingly.
+
 ## Project structure
 
 ```
 app/
   config.py                    # paths, SCRIPTS_DIR, SSH_PORT
   templating.py                # shared Jinja2Templates instance
+  core/
+    auth/
+      auth_manager.py           # validate_user, authenticate_websocket, JWT checks
+      exception.py               # AuthenticationError and subclasses
+      exception_handlers.py      # maps auth exceptions -> 401/403 JSONResponse
+  middleware.py                 # AuthRedirectMiddleware (401/403 -> /login or /stub for page loads)
   routers/
     pages.py                   # /, /connect, /credentials, /terminal
+    auth.py                    # /login, /auth (not gated by validate_user)
     ssh_ws.py                  # /ws/ssh
     script_ws.py                # /ws/script
   services/
@@ -37,11 +53,16 @@ app/
 frontend/
   templates/                    # Jinja2 pages, macros, components
   static/
-    js/                          # vanilla ES modules, no build step
+    js/
+      auth.js                    # fetch() 401/403 redirect handling (skips /auth)
+      common/ws.js                # WebSocket helper; redirects on close codes 4401/4403
+      ...                         # other vanilla ES modules, no build step
     css/
     vendor/xterm.js               # bundled xterm.js
 scripts/                         # created at runtime; your .cmd/.ps1/.sh/.py files go here
 ```
+
+*(`app/routers/auth.py` and the exact split of `core/auth/` files above reflect this project's conventions — adjust paths if yours differ.)*
 
 ## Requirements
 
@@ -50,8 +71,7 @@ scripts/                         # created at runtime; your .cmd/.ps1/.sh/.py fi
 - `asyncssh` (SSH sessions)
 - `ptyprocess` on macOS/Linux **or** `pywinpty` on Windows (local script PTYs)
 - `pydantic`, `pydantic-settings`, `loguru`
-
-Only needed by the auth layer below, and not yet exercised by the running app:  `passlib[argon2]`, `python-jose[cryptography]`.
+- `python-jose[cryptography]` (JWT issuing/verification for the auth layer)
 
 ## Getting started
 

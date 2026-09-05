@@ -11,6 +11,7 @@ import re
 from fastapi import APIRouter, WebSocket
 from starlette.websockets import WebSocketDisconnect
 
+from app.core.auth.auth_manager import authenticate_websocket
 from app.services.sessions.process_session import ProcessSession
 from app.services.scripts.script_runner import InvalidScriptError
 
@@ -20,6 +21,9 @@ router = APIRouter()
 @router.websocket("/ws/script")
 async def script_terminal(websocket: WebSocket) -> None:
     await websocket.accept()
+    token = await authenticate_websocket(websocket)
+    if token is None:
+        return
 
     session: ProcessSession | None = None
 

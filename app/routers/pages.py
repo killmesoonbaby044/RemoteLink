@@ -2,9 +2,13 @@
 
 from __future__ import annotations
 
-from fastapi import Request, APIRouter
+from typing import Annotated
+
+from fastapi import Request, APIRouter, Depends
 from fastapi.responses import HTMLResponse
 
+from app.config import AccessToken
+from app.core.auth.auth_manager import validate_user
 from app.services.scripts.script_runner import list_scoped_scripts
 from app.templating import templates
 
@@ -12,7 +16,10 @@ router = APIRouter()
 
 
 @router.get("/", response_class=HTMLResponse)
-async def index(request: Request):
+async def index(
+    request: Request,
+    _: Annotated[AccessToken, Depends(validate_user)],
+):
 
     return templates.TemplateResponse(
         request=request,
@@ -28,7 +35,8 @@ async def index(request: Request):
 
 @router.get("/connect", response_class=HTMLResponse)
 async def connect_page(
-    request: Request, host: str | None = None, script: str | None = None
+    request: Request,
+    _: Annotated[AccessToken, Depends(validate_user)],
 ):
     """SSH sessions for unix and switch."""
 
@@ -38,8 +46,21 @@ async def connect_page(
     )
 
 
+@router.get("/login", response_class=HTMLResponse)
+async def login_page(request: Request):
+    """login"""
+
+    return templates.TemplateResponse(
+        request=request,
+        name="pages/login.html",
+    )
+
+
 @router.get("/credentials", response_class=HTMLResponse)
-async def credentials_page(request: Request):
+async def credentials_page(
+    request: Request,
+    _: Annotated[AccessToken, Depends(validate_user)],
+):
     return templates.TemplateResponse(request=request, name="pages/credentials.html")
 
 
@@ -56,7 +77,10 @@ async def credentials_page(request: Request):
 
 @router.get("/terminal", response_class=HTMLResponse)
 async def terminal_page(
-    request: Request, host: str | None = None, script: str | None = None
+    request: Request,
+    _: Annotated[AccessToken, Depends(validate_user)],
+    host: str | None = None,
+    script: str | None = None,
 ):
     """Shared xterm.js page for both SSH sessions and script runs."""
 

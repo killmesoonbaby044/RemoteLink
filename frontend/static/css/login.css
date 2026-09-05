@@ -1,0 +1,127 @@
+/* =========================================================
+   RemoteLink — login page
+   ========================================================= */
+
+.login-container {
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    padding-top: clamp(20px, 8vh, 90px);
+}
+
+.login-card {
+    width: 100%;
+    max-width: 380px;
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-md);
+    padding: 32px 28px;
+}
+
+.login-card h1 {
+    margin: 0 0 6px;
+    font-size: 22px;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    color: var(--color-text);
+}
+
+.login-subtitle {
+    margin: 0 0 24px;
+    font-size: 14px;
+    color: var(--color-text-secondary);
+}
+
+.login-form {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.form-field {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.form-field label {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--color-text-secondary);
+}
+
+.form-field input {
+    width: 100%;
+    background: var(--color-surface-2);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    color: var(--color-text);
+    font-family: var(--font-sans);
+    font-size: 15px;
+    padding: 10px 12px;
+    transition: border-color var(--transition-fast), background var(--transition-fast);
+}
+
+.form-field input::placeholder {
+    color: var(--color-text-muted);
+}
+
+.form-field input:hover {
+    background: var(--color-surface-hover);
+}
+
+.form-field input:focus-visible {
+    outline: none;
+    border-color: var(--color-accent);
+    box-shadow: 0 0 0 3px var(--color-accent-soft);
+}
+
+.login-form button[type="submit"] {
+    margin-top: 4px;
+    width: 100%;
+    background: var(--color-accent);
+    color: var(--color-text);
+    border: none;
+    border-radius: var(--radius-sm);
+    font-family: var(--font-sans);
+    font-size: 15px;
+    font-weight: 600;
+    padding: 11px 12px;
+    cursor: pointer;
+    transition: background var(--transition-fast);
+}
+
+.login-form button[type="submit"]:hover {
+    background: var(--color-accent-hover);
+}
+
+.login-form button[type="submit"]:active {
+    background: var(--color-accent-active);
+}
+
+.login-form button[type="submit"]:disabled {
+    opacity: 0.6;
+    cursor: default;
+}
+
+.login-status {
+    min-height: 18px;
+    margin: 0;
+    font-size: 13px;
+    color: var(--color-text-secondary);
+}
+
+.login-status.is-error {
+    color: #f0554f;
+}
+
+.login-status.is-success {
+    color: #4bc27a;
+}
+
+@media (max-width: 600px) {
+    .login-card {
+        padding: 26px 20px;
+    }
+}

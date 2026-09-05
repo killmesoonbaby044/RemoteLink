@@ -9,7 +9,7 @@
 import { packScriptRef } from "./script-ref.js";
 
 const STORAGE_KEY = "terminal_history";
-const HISTORY_CAP = 10;
+const HISTORY_CAP = 15;
 
 function readList(key) {
     try {
@@ -23,8 +23,28 @@ export function getHistory() {
     return readList(STORAGE_KEY);
 }
 
+// Two entries count as "the same" if they'd render as the same row --
+// same connection target for ssh, same script+argument for script runs.
+// Used by pushHistory to move a repeated action back to the top instead
+// of piling up duplicates.
+function isSameEntry(a, b) {
+    if (a.type !== b.type) {
+        return false;
+    }
+
+    if (a.type === "ssh") {
+        return a.host === b.host;
+    }
+
+    if (a.type === "script") {
+        return a.path === b.path && (a.name || null) === (b.name || null);
+    }
+
+    return false;
+}
+
 export function pushHistory(entry, cap = HISTORY_CAP) {
-    const history = getHistory();
+    const history = getHistory().filter((existing) => !isSameEntry(existing, entry));
     history.unshift(entry);
     history.splice(cap);
     localStorage.setItem(STORAGE_KEY, JSON.stringify(history));

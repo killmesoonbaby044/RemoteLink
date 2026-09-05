@@ -52,7 +52,16 @@ export function openTypedSocket(path, {
 
     socket.onopen = () => onOpen?.(socket);
     socket.onerror = () => onError?.(socket);
-    socket.onclose = () => onClose?.(socket);
-
+    socket.onclose = (event) => {
+        if (event.code === 4401) {
+            window.location.replace("/login");
+            return;
+        }
+        if (event.code === 4403) {
+            window.location.replace("/stub");
+            return;
+        }
+    onClose?.(socket);
+    };
     return socket;
 }

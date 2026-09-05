@@ -1,0 +1,88 @@
+{% extends "base.html" %}
+
+
+{% block title %}
+Login
+{% endblock %}
+
+
+{% block header %}{% endblock %}
+
+
+{% block head %}
+
+<link rel="stylesheet" href="/static/css/login.css">
+
+{% endblock %}
+
+
+{% block content %}
+
+<div class="login-container">
+
+    <section class="login-card">
+
+        <h1>
+            Sign in
+        </h1>
+
+        <p class="login-subtitle">
+            Enter your credentials to continue.
+        </p>
+
+        <form id="login-form" class="login-form" novalidate>
+
+            <div class="form-field">
+
+                <label for="login-username">
+                    Username
+                </label>
+
+                <input
+                    type="text"
+                    id="login-username"
+                    name="username"
+                    autocomplete="username"
+                    placeholder="jdoe"
+                    required
+                >
+
+            </div>
+
+            <div class="form-field">
+
+                <label for="login-password">
+                    Password
+                </label>
+
+                <input
+                    type="password"
+                    id="login-password"
+                    name="password"
+                    autocomplete="current-password"
+                    placeholder="••••••••"
+                    required
+                >
+
+            </div>
+
+            <button type="submit" id="login-submit">
+                Sign in
+            </button>
+
+            <p class="login-status" id="login-status" role="alert"></p>
+
+        </form>
+
+    </section>
+
+</div>
+
+{% endblock %}
+
+
+{% block scripts %}
+
+<script type="module" src="/static/js/login.js"></script>
+
+{% endblock %}

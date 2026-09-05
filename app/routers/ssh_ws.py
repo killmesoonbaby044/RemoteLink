@@ -5,6 +5,7 @@ from __future__ import annotations
 from fastapi import APIRouter, WebSocket
 from starlette.websockets import WebSocketDisconnect
 
+from app.core.auth.auth_manager import authenticate_websocket
 from app.services.sessions.ssh_session import SSHSession
 
 router = APIRouter()
@@ -13,6 +14,9 @@ router = APIRouter()
 @router.websocket("/ws/ssh")
 async def ssh_terminal(websocket: WebSocket) -> None:
     await websocket.accept()
+    token = await authenticate_websocket(websocket)
+    if token is None:
+        return
 
     session: SSHSession | None = None
 

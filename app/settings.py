@@ -1,7 +1,8 @@
+from base64 import b64decode
 from functools import lru_cache
-from typing import Literal, final
+from typing import Literal, final, Optional
 
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator, Base64Bytes
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 # class JwtConfig(BaseModel):
@@ -39,7 +40,12 @@ class Config(BaseSettings):
         env_file_encoding="utf-8",
         extra="ignore",
     )
-    AUTH_API: str
+    auth_api: str
+    jwt_issuer: str
+    jwt_audience: str
+    jwt_pub_key: Base64Bytes
+    jwt_algorithm: Optional[str] = "ES256"
+    jwt_expires: Optional[int] = 864000
 
 
 @lru_cache
