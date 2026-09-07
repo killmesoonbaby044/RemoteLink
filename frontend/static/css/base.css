@@ -139,8 +139,8 @@ body {
 }
 
 .logo-icon {
-    width: 1.3em;
-    height: 1.3em;
+    width: 1.8em;
+    height: 1.8em;
     flex-shrink: 0;
     object-fit: contain;
 }

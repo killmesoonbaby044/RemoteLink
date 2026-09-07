@@ -14,7 +14,12 @@ from app.core.port_app_resolve import get_app_port
 from app.routers import register_routers
 
 app = FastAPI(
-    title="OPS Terminal", lifespan=lifespan, exception_handlers=exception_handlers
+    title="RemoteLink\OPS Terminal",
+    lifespan=lifespan,
+    exception_handlers=exception_handlers,
+    docs_url=None,
+    redoc_url=None,
+    openapi_url=None,
 )
 app.add_middleware(AuthRedirectMiddleware)  # type: ignore[arg-type]
 
