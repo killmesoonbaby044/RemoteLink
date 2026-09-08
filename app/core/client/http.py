@@ -1,6 +1,13 @@
+import sys
 from typing import Any
 
 import httpx
+
+if sys.platform == "win32":
+
+    import truststore
+
+    truststore.inject_into_ssl()
 
 
 class HttpClient:

@@ -1,5 +1,6 @@
 from base64 import b64decode
 from functools import lru_cache
+from pathlib import Path
 from typing import Literal, final, Optional
 
 from pydantic import BaseModel, field_validator, Base64Bytes
@@ -32,11 +33,13 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 #     modules_path = app_path / "api" / "modules"
 #
 
+BASE_DIR = Path(__file__).resolve().parent.parent
+
 
 @final
 class Config(BaseSettings):
     model_config = SettingsConfigDict(
-        env_file=".env",
+        env_file=(BASE_DIR / ".env"),
         env_file_encoding="utf-8",
         extra="ignore",
     )

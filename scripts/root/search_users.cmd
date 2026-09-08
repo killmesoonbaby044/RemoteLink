@@ -1,4 +1,5 @@
 @echo off
+chcp 65001 >nul
 setlocal EnableDelayedExpansion
 
 set "query=%~1"
@@ -12,24 +13,16 @@ if "%query%"=="" (
 
 set "query=%query:'=''%"
 
-for /f "usebackq tokens=1,2 delims=|" %%a in (`powershell -NoProfile -Command "[Console]::OutputEncoding=[Text.Encoding]::UTF8; Get-ADUser -Filter \"Name -like '*%query%*' -or SamAccountName -like '*%query%*'\" -Properties Name -ErrorAction SilentlyContinue | Sort-Object Name | ForEach-Object { $_.SamAccountName + '|' + $_.Name }" 2^>nul`) do (
-    set /a count+=1
+for /f "usebackq tokens=1,2 delims=|" %%a in (`powershell -NoProfile -Command "[Console]::OutputEncoding=[Text.Encoding]::UTF8; Get-ADUser -Filter \"Name -like '*%query%*' -or SamAccountName -like '*%query%*'\" -Properties Name -ErrorAction SilentlyContinue | Sort-Object Name | Select-Object -First 16 | ForEach-Object { $_.SamAccountName + '|' + $_.Name }" 2^>nul`) do (
+    set "sam=%%a"
+    set "full=%%b"
 
-    if !count! LEQ 16 (
-        set "sam=%%a"
-        set "full=%%b"
-
-        if defined results (
-            set "results=!results!|!sam![!full!]"
-        ) else (
-            set "results=!sam![!full!]"
-        )
+    if defined results (
+        set "results=!results!|!full![!sam!]"
     ) else (
-        goto results_done
+        set "results=!full![!sam!]"
     )
 )
-
-:results_done
 
 echo SEARCH_RESULTS: !results!
 

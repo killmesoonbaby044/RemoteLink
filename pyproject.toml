@@ -16,6 +16,7 @@ dependencies = [
     "ptyprocess>=0.7.0",
     "pydantic-settings>=2.15.0",
     "python-jose[cryptography]>=3.5.0",
+    "truststore>=0.10.4",
     "uvicorn>=0.52.4",
     "websockets>=17.0.1",
 ]
