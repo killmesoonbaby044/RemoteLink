@@ -4,6 +4,8 @@ import getpass
 import ipaddress
 import socket
 
+from app.config import IP_MAP_FILE
+
 
 def is_port_free(ip: str) -> bool:
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -16,8 +18,6 @@ def is_port_free(ip: str) -> bool:
         s.close()
 
 
-SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
-IP_MAP_FILE = os.path.join(SCRIPT_DIR, "ip_map.json")
 BASE_IP = ipaddress.ip_address("127.0.0.2")
 
 

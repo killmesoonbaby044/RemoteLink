@@ -7,10 +7,9 @@ from typing import Annotated
 from fastapi import Request, APIRouter, Depends
 from fastapi.responses import HTMLResponse
 
-from app.config import AccessToken
+from app.config import AccessToken, templates
 from app.core.auth.auth_manager import validate_user
 from app.services.scripts.script_runner import list_scoped_scripts
-from app.templating import templates
 
 router = APIRouter()
 
@@ -33,7 +32,7 @@ async def index(
     )
 
 
-@router.get("/connect", response_class=HTMLResponse)
+@router.get("/switches", response_class=HTMLResponse)
 async def connect_page(
     request: Request,
     _: Annotated[AccessToken, Depends(validate_user)],
@@ -42,7 +41,7 @@ async def connect_page(
 
     return templates.TemplateResponse(
         request=request,
-        name="pages/connect.html",
+        name="pages/switches.html",
     )
 
 
@@ -64,17 +63,6 @@ async def credentials_page(
     return templates.TemplateResponse(request=request, name="pages/credentials.html")
 
 
-# @router.get("/scripts", response_class=HTMLResponse)
-# async def scripts_page(request: Request):
-#     """Lists the script files available in SCRIPTS_DIR to run."""
-#
-#     return templates.TemplateResponse(
-#         request=request,
-#         name="scripts.html",
-#         context={"scripts": list_scripts()},
-#     )
-
-
 @router.get("/terminal", response_class=HTMLResponse)
 async def terminal_page(
     request: Request,
@@ -88,4 +76,14 @@ async def terminal_page(
         request=request,
         name="pages/terminal.html",
         context={"host": host, "script": script},
+    )
+
+
+@router.get("/switch_inventory", response_class=HTMLResponse)
+async def switch_inventory(
+    request: Request,
+    _: Annotated[AccessToken, Depends(validate_user)],
+):
+    return templates.TemplateResponse(
+        request=request, name="pages/switch_inventory.html"
     )

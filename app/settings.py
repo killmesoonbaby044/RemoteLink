@@ -1,10 +1,10 @@
-from base64 import b64decode
 from functools import lru_cache
-from pathlib import Path
-from typing import Literal, final, Optional
+from typing import final, Optional
 
-from pydantic import BaseModel, field_validator, Base64Bytes
+from pydantic import Base64Bytes
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+from app.config import BASE_DIR
 
 # class JwtConfig(BaseModel):
 #     secret_key: str
@@ -32,8 +32,6 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 #     models_path = database_path / "models"
 #     modules_path = app_path / "api" / "modules"
 #
-
-BASE_DIR = Path(__file__).resolve().parent.parent
 
 
 @final
