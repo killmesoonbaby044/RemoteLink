@@ -28,6 +28,7 @@ SSH_PORT = 22
 IP_MAP_FILE = BASE_DIR / "app" / "storage" / "ip_map.json"
 
 INVENTORY_FILE = BASE_DIR / "app" / "storage" / "switch_inventory.json"
+INVENTORY_DB = BASE_DIR / "app" / "storage" / "switch_inventory.db"
 
 
 class TokenName(BaseModel):

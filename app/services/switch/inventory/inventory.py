@@ -1,13 +1,19 @@
 """Domain logic for the switch inventory: hosts, nested groups, root
 points, cycle detection, and referencing checks.
 
-There's no database in this project yet, so persistence is a flat JSON
-document (see inventory_repository.py) with three top-level maps -
-hosts, groups, and root_points. A group's `members` list can contain
-host names or other group names, so groups can nest arbitrarily deep;
-`resolve_group` flattens that recursively, and `add_group` rejects a
-cycle up front rather than letting it surface later whenever something
-happens to resolve that group.
+Persistence is a single JSON blob stored in SQLite (see
+inventory_repository.py), with three top-level maps - hosts, groups, and
+root_points. A group's `members` list can contain host names or other
+group names, so groups can nest arbitrarily deep; `resolve_group`
+flattens that recursively, and `add_group` rejects a cycle up front
+rather than letting it surface later whenever something happens to
+resolve that group.
+
+This app runs as a few replicas against the same inventory file, so
+every operation re-reads the current state and does its
+read-validate-write cycle inside one SQLite transaction (see
+`_transaction` below) rather than trusting an in-memory cache - that's
+what keeps two replicas from silently clobbering each other's writes.
 
 A root point sits one level above groups (e.g. one root point per
 building, containing the groups/hosts that belong to that building).
@@ -22,17 +28,22 @@ are never stored - they're supplied by the caller on every task request
 (see app/api/routes/switch_tasks.py).
 
 Add to app/config.py:
-    INVENTORY_FILE = DATA_DIR / "inventory.json"
+    INVENTORY_FILE = DATA_DIR / "inventory.db"
+
+If you're migrating an existing inventory.json, one-time step: load it
+with the old InventoryRepository, then call the new repository's
+begin()/save()/commit() once to seed the SQLite file with the same data.
 """
 
 from __future__ import annotations
 
 import asyncio
+import sqlite3
 from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import AsyncIterator
 
-from app.config import INVENTORY_FILE
+from app.config import INVENTORY_DB
 from app.services.switch.inventory.inventory_repo import InventoryRepository
 from app.services.switch.schemas import Group, Host, RootPoint
 
@@ -55,33 +66,54 @@ class ConflictError(InventoryError):
 
 
 class InventoryStore:
-    """In-memory view over the inventory, backed by an InventoryRepository.
+    """View over the inventory, backed by an InventoryRepository.
 
-    One instance (see `inventory_store` below) is enough for the whole
-    app. Every read or write goes through `_transaction`, which loads
-    from the repository on first use and holds the lock for the
-    duration - one lock acquisition per call instead of a separate
-    "ensure loaded" step.
+    One instance (see `inventory_store` below) is enough per process,
+    but several processes/replicas can run against the same underlying
+    file. Every read or write goes through `_transaction`, which:
+
+    1. Acquires this process's `asyncio.Lock`, so coroutines within the
+       same process can't interleave.
+    2. Opens a SQLite write transaction (`BEGIN IMMEDIATE`) for the
+       whole call, so a concurrent replica trying to do the same is
+       blocked until this one commits or rolls back.
+    3. Loads fresh state from the repository every time - no
+       load-once caching - so every replica always acts on the latest
+       committed data instead of a stale in-memory copy.
+
+    `self._hosts` / `_groups` / `_root_points` are only valid for the
+    duration of one `_transaction()` block; they're throwaway locals
+    reloaded each call, not long-lived state.
     """
 
-    def __init__(self, path: Path = INVENTORY_FILE):
+    def __init__(self, path: Path = INVENTORY_DB):
         self._repo = InventoryRepository(path)
         self._lock = asyncio.Lock()
         self._hosts: dict[str, Host] = {}
         self._groups: dict[str, Group] = {}
         self._root_points: dict[str, RootPoint] = {}
-        self._loaded = False
+        self._conn: sqlite3.Connection | None = None
 
     @asynccontextmanager
     async def _transaction(self) -> AsyncIterator[None]:
         async with self._lock:
-            if not self._loaded:
-                self._hosts, self._groups, self._root_points = self._repo.load()
-                self._loaded = True
-            yield
+            # begin() can block waiting on another replica's open
+            # transaction, so hop off the event loop for that part.
+            conn = await asyncio.to_thread(self._repo.begin)
+            self._conn = conn
+            try:
+                self._hosts, self._groups, self._root_points = self._repo.load(conn)
+                yield
+                conn.commit()
+            except Exception:
+                conn.rollback()
+                raise
+            finally:
+                conn.close()
+                self._conn = None
 
     def _save(self) -> None:
-        self._repo.save(self._hosts, self._groups, self._root_points)
+        self._repo.save(self._conn, self._hosts, self._groups, self._root_points)
 
     def _referenced_by(self, name: str) -> list[str]:
         """Which groups or root points list `name` as a member - used to
