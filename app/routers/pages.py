@@ -9,7 +9,7 @@ from fastapi.responses import HTMLResponse
 
 from app.config import AccessToken, templates
 from app.core.auth.auth_manager import validate_user
-from app.services.scripts.script_runner import list_scoped_scripts
+from app.services.sessions.script_runner import list_scoped_scripts
 
 router = APIRouter()
 

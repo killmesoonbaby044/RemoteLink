@@ -27,12 +27,11 @@ import asyncio
 import logging
 import re
 import sys
-from pathlib import Path
 
 from fastapi import WebSocket
 
 from app.services.sessions.io_relay import relay
-from app.services.scripts.script_runner import build_command, resolve_script_path
+from app.services.sessions.script_runner import build_command, resolve_script_path
 
 IS_WINDOWS = sys.platform == "win32"
 

@@ -13,7 +13,7 @@ from starlette.websockets import WebSocketDisconnect
 
 from app.core.auth.auth_manager import authenticate_websocket
 from app.services.sessions.process_session import ProcessSession
-from app.services.scripts.script_runner import InvalidScriptError
+from app.services.sessions.script_runner import InvalidScriptError
 
 router = APIRouter()
 

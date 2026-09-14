@@ -359,6 +359,29 @@ class InventoryStore:
                 self._resolve_into(member, found, visiting=set())
             return list(found.values())
 
+    async def resolve_for_lookup(self, names: list[str]) -> list[Host]:
+        """Flatten every root/group into a de-duplicated
+        list of Hosts - one call to get every requested root/group."""
+        found: dict[str, Host] = {}
+
+        async with self._transaction():
+            for name in names:
+                if name in self._root_points:
+                    type_obj = self._root_points
+                elif name in self._groups:
+                    type_obj = self._groups
+                elif name in self._hosts:
+                    self._resolve_into(name, found, visiting=set())
+                    continue
+
+                else:
+                    raise NotFoundError(f"Unknown root point or group '{name}'")
+
+                for member in type_obj[name].members:
+                    self._resolve_into(member, found, visiting=set())
+
+            return list(found.values())
+
     def _resolve_into(
         self, name: str, out: dict[str, Host], visiting: set[str]
     ) -> None:

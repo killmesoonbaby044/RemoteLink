@@ -62,12 +62,12 @@ def find_by_suffix(host: str, command_output: str, suffix: str) -> list[MacEntry
     entries: list[MacEntry] = []
     for m in MAC_LINE.finditer(command_output):
         mac_digits = m.group("mac").lower().replace(".", "")
-        if not mac_digits.endswith(hex_suffix):
+        if hex_suffix not in mac_digits:
             continue
 
         entries.append(
             MacEntry(
-                host=host,
+                # host=host,
                 vlan=m.group("vlan"),
                 mac=m.group("mac"),
                 type=m.group("type"),

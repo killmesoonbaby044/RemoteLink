@@ -35,13 +35,13 @@ class CommandResult(BaseModel):
 
 class HostTaskResult(BaseModel):
     host: str
+    address: str
     ok: bool
     matches: list[Any] = Field(default_factory=list)
     error: str = ""
 
 
 class MacEntry(BaseModel):
-    host: str
     vlan: str
     mac: str
     type: str  # e.g. STATIC, DYNAMIC, SecureSticky, SecureConfigured
@@ -49,7 +49,7 @@ class MacEntry(BaseModel):
 
 
 class MacLookupRequest(BaseModel):
-    group: str  # a host name or a group name from the inventory
+    group: list[str]  # a host name or a group name from the inventory
     username: str
     password: str
     mac_suffix: str  # last few hex chars of the MAC you're hunting for

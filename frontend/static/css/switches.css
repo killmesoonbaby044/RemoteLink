@@ -102,62 +102,50 @@
 
 .lookup-results {
     margin-top: 28px;
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
 }
 
-.lookup-result {
-    padding: 14px 16px;
-    background: var(--color-surface-2);
+.lookup-results-table-wrap {
+    overflow-x: auto;
     border: 1px solid var(--color-border);
     border-radius: var(--radius-md);
 }
 
-.lookup-result-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 10px;
-    margin-bottom: 8px;
-}
-
-.lookup-result-host {
-    font-family: var(--font-mono);
+.lookup-results-table {
+    width: 100%;
+    border-collapse: collapse;
     font-size: 14px;
-    color: var(--color-text);
 }
 
-.lookup-status {
+.lookup-results-table th,
+.lookup-results-table td {
+    padding: 10px 16px;
+    text-align: left;
+    white-space: nowrap;
+}
+
+.lookup-results-table thead th {
+    background: var(--color-surface-2);
+    color: var(--color-text-secondary);
     font-size: 12px;
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.04em;
-    padding: 2px 8px;
-    border-radius: 999px;
+    border-bottom: 1px solid var(--color-border-strong);
 }
 
-.lookup-status-ok {
-    color: #6fe0a0;
-    background: rgba(111, 224, 160, 0.12);
-}
-
-.lookup-status-error {
-    color: #f08383;
-    background: rgba(240, 131, 131, 0.12);
-}
-
-.lookup-result-body {
-    margin: 0;
-    padding: 10px 12px;
-    background: var(--color-bg);
-    border-radius: var(--radius-sm);
-
-    color: var(--color-text-secondary);
+.lookup-results-table tbody td {
+    color: var(--color-text);
     font-family: var(--font-mono);
-    font-size: 13px;
-    white-space: pre-wrap;
-    word-break: break-word;
+    border-bottom: 1px solid var(--color-border);
+    transition: background var(--transition-fast);
+}
+
+.lookup-results-table tbody tr:last-child td {
+    border-bottom: none;
+}
+
+.lookup-results-table tbody tr:hover td {
+    background: var(--color-surface-2);
 }
 
 .lookup-empty {
@@ -295,4 +283,8 @@
     color: var(--color-text);
     background: var(--color-surface-2);
     border-color: var(--color-border-strong);
+}
+.lookup-results-host-link {
+    color: inherit;
+    text-decoration: underline;
 }

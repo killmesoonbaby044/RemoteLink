@@ -82,18 +82,18 @@ async def _run_commands(
 
 
 async def _run_task_on_group(
-    group_name: str,
+    group_name: list[str],
     username: str,
     password: str,
     commands: list[str],
     parse: ParseFn,
     max_concurrent: int = 10,
 ) -> list[HostTaskResult]:
-    """Resolves `group_name` via the inventory, then runs `commands` on
+    """Resolves `group_name` or "root_point" via the inventory, then runs `commands` on
     every host concurrently (capped by `max_concurrent`), parsing each
     host's output independently."""
 
-    hosts = await inventory_store.resolve_group(group_name)
+    hosts = await inventory_store.resolve_for_lookup(group_name)
     semaphore = asyncio.Semaphore(max_concurrent)
 
     async def run_one(host: Host) -> HostTaskResult:
@@ -102,11 +102,18 @@ async def _run_task_on_group(
 
         if not result.ok:
             return HostTaskResult(
-                host=host.name, ok=False, matches=[], error=result.error
+                host=host.name,
+                address=host.address,
+                ok=False,
+                matches=[],
+                error=result.error,
             )
 
         return HostTaskResult(
-            host=host.name, ok=True, matches=parse(host.name, result.output)
+            host=host.name,
+            address=host.address,
+            ok=True,
+            matches=parse(host.name, result.output),
         )
 
     return list(await asyncio.gather(*(run_one(h) for h in hosts)))
@@ -123,7 +130,7 @@ async def run_lookup(req: MacLookupRequest, base_command: str) -> MacLookupRespo
         )
     except InventoryError as exc:
         return MacLookupResponse(
-            results=[HostTaskResult(host=req.group, ok=False, error=str(exc))]
+            results=[HostTaskResult(host=",".join(req.group), ok=False, error=str(exc))]
         )
 
     return MacLookupResponse(results=results)
