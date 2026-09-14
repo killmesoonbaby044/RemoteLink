@@ -69,14 +69,23 @@ Connect to device
                 <label for="mac-suffix">
                     MAC address
                 </label>
-                <input
-                    type="text"
-                    id="mac-suffix"
-                    name="mac_suffix"
-                    placeholder="aabb.ccdd.eeff or a trailing suffix like ccdd.eeff"
-                    autocomplete="off"
-                    required
-                >
+                <div class="autosuggest" id="mac-suffix-wrapper">
+
+                    <input
+                        type="text"
+                        id="mac-suffix"
+                        name="mac_suffix"
+                        placeholder="aabb.ccdd.eeff or a trailing suffix like ccdd.eeff"
+                        autocomplete="off"
+                        required
+                    >
+
+                    <div
+                        class="autosuggest-menu"
+                        id="mac-suffix-menu"
+                    ></div>
+
+                </div>
             </div>
 
             <div class="form-field">
@@ -160,6 +169,6 @@ Connect to device
 {% block scripts %}
 
 <script type="module" src="/static/js/switches.js"></script>
-<script type="module" src="/static/js/lookup.js"></script>
+<script type="module" src="/static/js/switch_lookup/lookup.js"></script>
 
 {% endblock %}
