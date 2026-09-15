@@ -8,6 +8,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from app.config import SCRIPTS_DIR
+from app.services.domain.schema import ScriptQueryParams
 
 
 class InvalidScriptError(Exception):
@@ -53,6 +54,25 @@ def resolve_script_path(name: str) -> Path:
         raise InvalidScriptError(f"Script '{name}' was not found")
 
     return candidate
+
+
+def resolve_script_path_new(args: ScriptQueryParams) -> Path:
+
+    scripts_dir = SCRIPTS_DIR.resolve()
+
+    folder_path = (scripts_dir / args.folder).resolve()
+
+    if scripts_dir not in folder_path.parents and folder_path != scripts_dir:
+
+        raise InvalidScriptError(f"Invalid script folder")
+
+    matches = list(folder_path.glob(f"{args.script}.*"))
+
+    if len(matches) != 1 or not matches[0].is_file():
+
+        raise InvalidScriptError(f"Script '{args.script}' was not found")
+
+    return matches[0]
 
 
 def build_command(path: Path, arg: str | None = None) -> list[str]:

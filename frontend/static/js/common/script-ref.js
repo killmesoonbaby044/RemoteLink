@@ -23,6 +23,17 @@ export function unpackScriptRef(ref) {
     };
 }
 
+// Splits a "folder\script" (or "folder/script") path into its two parts,
+// e.g. for callers that need to send them as separate request params
+// instead of as one packed path. Any extra leading segments are joined
+// back into `folder` (only the last segment is treated as the script).
+export function splitScriptPath(path) {
+    const segments = path.split(/[\\/]/).filter(Boolean);
+    const script = segments.pop() || "";
+    const folder = segments.join("\\");
+    return { folder, script };
+}
+
 // Human-friendly label for UI (tab titles, etc.) -- prefers the argument
 // (usually the target PC name) since that's what identifies the session
 // to a person; falls back to the plain script name otherwise.

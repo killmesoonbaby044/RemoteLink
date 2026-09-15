@@ -7,7 +7,7 @@
 // separate from the other's.
 
 import { pushHistory, getRecentSearches, pushSearch } from "./history.js";
-import { packScriptRef } from "./script-ref.js";
+import { packScriptRef, splitScriptPath } from "./script-ref.js";
 import { createAutosuggest } from "./autosuggest.js";
 
 export function initEntitySearch({
@@ -163,9 +163,14 @@ function search(query) {
     setStatus("Searching...");
     pushSearch(kind, query);
 
-    const scriptRef = packScriptRef(searchScript, query);
+    const { folder, script } = splitScriptPath(searchScript);
+    const params = new URLSearchParams({
+        folder,
+        script,
+        input_data: query,
+    });
 
-    fetch(`/domain/scripts?name=${encodeURIComponent(scriptRef)}`, { method: "POST" })
+    fetch(`/domain/scripts?${params.toString()}`, { method: "POST" })
         .then((response) => {
             if (!response.ok) {
                 return response.json().then((body) => {
@@ -175,7 +180,7 @@ function search(query) {
             return response.json();
         })
         .then((result) => {
-            renderResults(result.records || []);
+            renderResults(result.result || []);
         })
         .catch((err) => {
             setStatus(err.message || "Search failed.");

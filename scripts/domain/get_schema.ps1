@@ -1,11 +1,11 @@
- <#
+<#
     Dumps raw data only (Name, DN, ParentDN) for every OU that directly contains
     at least one user, grouped into Root1 / Root2 / Extra.
     No prints other than the final JSON on stdout. All input is hardcoded below.
     Name normalization ("Users" -> parent name, etc.) is intentionally NOT done
     here — it's done on the Python side (see accompanying script).
 #>
-chcp 65001 >nul
+[Console]::OutputEncoding = [System.Text.Encoding]::UTF8
 
 # ---- hardcoded input (edit these) ----
 $RootOU1      = "OU=Администрация,DC=adm,DC=dsszzi"

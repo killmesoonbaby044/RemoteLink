@@ -2,20 +2,27 @@
 
 Non-interactive counterpart to ProcessSession: no PTY, no WebSocket,
 no live browser I/O. Use this when a script just needs to run once and
-report a result (e.g. a search script that prints SEARCH_RESULTS: ...
-and exits) rather than prompt the user mid-run.
+report a result (e.g. print JSON and exit) rather than prompt the user
+mid-run.
+
+This module is intentionally domain-agnostic: it knows how to run a
+script and capture stdout/stderr/returncode, and nothing about what any
+given script's output means. Interpreting stdout (JSON parsing, shaping
+into a dict/list, deciding what counts as an error) is each call site's
+job - see ad_schema.py and ad_search.py for the two current ones.
 """
 
 from __future__ import annotations
 
 import asyncio
-import re
 import subprocess
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 
-from app.services.sessions.script_helpers import build_command, resolve_script_path
-
-_SEARCH_RESULTS_LINE = re.compile(r"^SEARCH_RESULTS:\s*(.*)$", re.MULTILINE)
+from app.services.domain.schema import ScriptQueryParams
+from app.services.sessions.script_helpers import (
+    build_command,
+    resolve_script_path_new,
+)
 
 DEFAULT_TIMEOUT_SECONDS = 30
 
@@ -23,33 +30,32 @@ DEFAULT_TIMEOUT_SECONDS = 30
 @dataclass
 class ScriptResult:
     returncode: int | None
-    stderr: str
+    stdout: str = ""
+    stderr: str = ""
     timed_out: bool = False
-    records: list[str] = field(default_factory=list)
 
     def to_dict(self) -> dict:
         return {
             "returncode": self.returncode,
+            "stdout": self.stdout,
             "stderr": self.stderr,
             "timed_out": self.timed_out,
-            "records": self.records,
         }
 
 
 async def run_script(
-    name: str,
-    arg: str | None = None,
+    params: ScriptQueryParams,
     timeout: float = DEFAULT_TIMEOUT_SECONDS,
 ) -> ScriptResult:
     """Resolve `name` inside SCRIPTS_DIR, run it to completion, and
-    return its captured stdout/stderr plus anything parsed out of it.
+    return its captured stdout/stderr/returncode.
 
-    Raises InvalidScriptError (from script_runner) if `name` doesn't
+    Raises InvalidScriptError (from script_helpers) if `name` doesn't
     resolve to a real file inside SCRIPTS_DIR.
     """
 
-    path = resolve_script_path(name)
-    command = build_command(path, arg)
+    path = resolve_script_path_new(params)
+    command = build_command(path, params.input_data)
 
     loop = asyncio.get_running_loop()
     timed_out = False
@@ -78,16 +84,9 @@ async def run_script(
         stderr = (exc.stderr or "") + "\n[process timed out and was killed]"
         returncode = None
 
-    result = ScriptResult(
+    return ScriptResult(
         returncode=returncode,
+        stdout=stdout,
         stderr=stderr,
         timed_out=timed_out,
     )
-    if "root\\search" in str(path):
-        search_match = _SEARCH_RESULTS_LINE.search(stdout)
-        if search_match:
-            result.records = [
-                c.strip() for c in search_match.group(1).strip().split("|") if c.strip()
-            ]
-
-    return result

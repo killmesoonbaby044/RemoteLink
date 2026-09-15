@@ -1,12 +1,13 @@
-import asyncio
 import json
-import subprocess
-from pathlib import Path
 
-from app.config import SCRIPTS_DOMAIN_SCHEMA
-from app.services.sessions.script_helpers import resolve_script_path, build_command
+from app.services.domain.schema import ScriptQueryParams
+from app.services.sessions.AD_script_session import run_script
 
 TIMEOUT = 60
+EXCLUDED_NAMES = {
+    # "SomeName",
+    # "Marketing-Contractors",
+}
 
 
 def normalize_name(raw_name: str, parent_dn: str | None) -> str:
@@ -49,52 +50,6 @@ def normalize_name(raw_name: str, parent_dn: str | None) -> str:
     return raw_name
 
 
-async def run_script(timeout: int = TIMEOUT) -> dict:
-    name = "domain\\get_schema.ps1"
-    path = resolve_script_path(name)
-    command = build_command(path)
-    loop = asyncio.get_running_loop()
-    timed_out = False
-
-    try:
-        completed = await loop.run_in_executor(
-            None,
-            lambda: subprocess.run(
-                command,
-                cwd=str(path.parent),
-                capture_output=True,
-                text=True,
-                encoding="utf-8",
-                errors="replace",
-                timeout=timeout,
-            ),
-        )
-        stdout, stderr, returncode = (
-            completed.stdout,
-            completed.stderr,
-            completed.returncode,
-        )
-    except subprocess.TimeoutExpired as exc:
-        timed_out = True
-        stdout = exc.stdout or ""
-        stderr = (exc.stderr or "") + "\n[process timed out and was killed]"
-        returncode = None
-
-    if timed_out:
-        raise RuntimeError(f"Script timed out.\nstderr:\n{stderr}")
-    if returncode != 0:
-        raise RuntimeError(f"Script exited with code {returncode}.\nstderr:\n{stderr}")
-
-    try:
-        data = json.loads(stdout)
-    except json.JSONDecodeError as exc:
-        raise RuntimeError(
-            f"Could not parse script output as JSON: {exc}\nRaw stdout:\n{stdout}"
-        )
-
-    return data
-
-
 def sort_key(item: dict) -> tuple[str, str]:
     """
     Safe sort key: works whether Name is a plain string ('Marketing') or a
@@ -107,16 +62,6 @@ def sort_key(item: dict) -> tuple[str, str]:
     return (name.casefold(), dn.casefold())
 
 
-# --- CRUTCH: hardcoded names to drop from the final output. ---
-# Matches against the *normalized* Name (case-insensitive), not the raw AD cn.
-# Temporary workaround - remove once the underlying .ps1 issue is fixed properly.
-EXCLUDED_NAMES = {
-    # "SomeName",
-    # "Marketing-Contractors",
-}
-_EXCLUDED_NAMES_CF = {n.casefold() for n in EXCLUDED_NAMES}
-
-
 def normalize_group(group: list[dict]) -> list[dict]:
     return [
         {"Name": normalize_name(item["Name"], item.get("ParentDN")), "DN": item["DN"]}
@@ -126,6 +71,11 @@ def normalize_group(group: list[dict]) -> list[dict]:
 
 def filter_excluded(group: list[dict]) -> list[dict]:
     """CRUTCH: drops items whose normalized Name is in EXCLUDED_NAMES."""
+    # --- CRUTCH: hardcoded names to drop from the final output. ---
+    # Matches against the *normalized* Name (case-insensitive), not the raw AD cn.
+    # Temporary workaround - remove once the underlying .ps1 issue is fixed properly.
+
+    _EXCLUDED_NAMES_CF = {n.casefold() for n in EXCLUDED_NAMES}
     return [item for item in group if item["Name"].casefold() not in _EXCLUDED_NAMES_CF]
 
 
@@ -140,7 +90,30 @@ def apply_naming(group: list[dict]) -> list[dict]:
     return group
 
 
-async def job():
-    raw = await run_script()
+async def ad_schema_search():
+    """AD-schema-specific wrapper around the shared script runner.
+
+    All the actual "run this script" plumbing (path resolution, command
+    building, timeout, subprocess) now lives in script_runner.run_script.
+    This function only owns what's specific to this use case: which
+    script to run, and how to turn its output into a dict / errors.
+    """
+    result = await run_script(
+        ScriptQueryParams(folder="domain", script="get_schema"), timeout=TIMEOUT
+    )
+
+    if result.timed_out:
+        raise RuntimeError(f"Script timed out.\nstderr:\n{result.stderr}")
+    if result.returncode != 0:
+        raise RuntimeError(
+            f"Script exited with code {result.returncode}.\nstderr:\n{result.stderr}"
+        )
+    try:
+        raw = json.loads(result.stdout)
+    except json.JSONDecodeError as exc:
+        raise RuntimeError(
+            f"Could not parse script output as JSON: {exc}\nRaw stdout:\n{result.stdout}"
+        )
+
     result = {key: apply_naming(value) for key, value in raw.items()}
     return result
