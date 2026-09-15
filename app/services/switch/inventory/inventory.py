@@ -1,50 +1,20 @@
 """Domain logic for the switch inventory: hosts, nested groups, root
 points, cycle detection, and referencing checks.
 
-Persistence is a single JSON blob stored in SQLite (see
-inventory_repository.py), with three top-level maps - hosts, groups, and
-root_points. A group's `members` list can contain host names or other
-group names, so groups can nest arbitrarily deep; `resolve_group`
-flattens that recursively, and `add_group` rejects a cycle up front
-rather than letting it surface later whenever something happens to
-resolve that group.
-
-This app runs as a few replicas against the same inventory file, so
-every operation re-reads the current state and does its
-read-validate-write cycle inside one SQLite transaction (see
-`_transaction` below) rather than trusting an in-memory cache - that's
-what keeps two replicas from silently clobbering each other's writes.
-
-A root point sits one level above groups (e.g. one root point per
-building, containing the groups/hosts that belong to that building).
-Root points are always top-level: their `members` list may only name
-hosts or groups, never another root point, and - since `add_group`
-only ever accepts host/group names as members - nothing can ever name
-a root point as a member either. So a root point can never take part
-in a cycle and needs no cycle check of its own.
-
-Only connection identity (name/ip/port) lives here. Login credentials
-are never stored - they're supplied by the caller on every task request
-(see app/api/routes/switch_tasks.py).
-
-Add to app/config.py:
-    INVENTORY_FILE = DATA_DIR / "inventory.db"
-
-If you're migrating an existing inventory.json, one-time step: load it
-with the old InventoryRepository, then call the new repository's
-begin()/save()/commit() once to seed the SQLite file with the same data.
+Persistence is a single JSON blob in SQLite, handled by BlobStore (see
+app/services/shared/blob_store.py) - this class only adds the
+Host/Group/RootPoint parsing on top and owns every domain rule (cycle
+checks, "still referenced" checks, etc.).
 """
 
 from __future__ import annotations
 
-import asyncio
 import sqlite3
 from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import AsyncIterator
 
-from app.config import INVENTORY_DB
-from app.services.switch.inventory.inventory_repo import InventoryRepository
+from app.core.database.blob_store import BlobStore
 from app.services.switch.schemas import Group, Host, RootPoint
 
 
@@ -65,30 +35,9 @@ class ConflictError(InventoryError):
     e.g. deleting something that's still referenced elsewhere."""
 
 
-class InventoryStore:
-    """View over the inventory, backed by an InventoryRepository.
-
-    One instance (see `inventory_store` below) is enough per process,
-    but several processes/replicas can run against the same underlying
-    file. Every read or write goes through `_transaction`, which:
-
-    1. Acquires this process's `asyncio.Lock`, so coroutines within the
-       same process can't interleave.
-    2. Opens a SQLite write transaction (`BEGIN IMMEDIATE`) for the
-       whole call, so a concurrent replica trying to do the same is
-       blocked until this one commits or rolls back.
-    3. Loads fresh state from the repository every time - no
-       load-once caching - so every replica always acts on the latest
-       committed data instead of a stale in-memory copy.
-
-    `self._hosts` / `_groups` / `_root_points` are only valid for the
-    duration of one `_transaction()` block; they're throwaway locals
-    reloaded each call, not long-lived state.
-    """
-
-    def __init__(self, path: Path = INVENTORY_DB):
-        self._repo = InventoryRepository(path)
-        self._lock = asyncio.Lock()
+class InventoryStore(BlobStore):
+    def __init__(self, table: str = "inventory_blob"):
+        super().__init__(table=table)
         self._hosts: dict[str, Host] = {}
         self._groups: dict[str, Group] = {}
         self._root_points: dict[str, RootPoint] = {}
@@ -96,28 +45,41 @@ class InventoryStore:
 
     @asynccontextmanager
     async def _transaction(self) -> AsyncIterator[None]:
-        async with self._lock:
-            # begin() can block waiting on another replica's open
-            # transaction, so hop off the event loop for that part.
-            conn = await asyncio.to_thread(self._repo.begin)
+        async with super()._transaction() as conn:
             self._conn = conn
+            raw = self._load_raw(conn)
+            self._hosts = {
+                n: Host(name=n, **f) for n, f in raw.get("hosts", {}).items()
+            }
+            self._groups = {
+                n: Group(name=n, members=f["members"])
+                for n, f in raw.get("groups", {}).items()
+            }
+            self._root_points = {
+                n: RootPoint(name=n, members=f["members"])
+                for n, f in raw.get("root_points", {}).items()
+            }
             try:
-                self._hosts, self._groups, self._root_points = self._repo.load(conn)
                 yield
-                conn.commit()
-            except Exception:
-                conn.rollback()
-                raise
             finally:
-                conn.close()
                 self._conn = None
 
     def _save(self) -> None:
-        self._repo.save(self._conn, self._hosts, self._groups, self._root_points)
+        data = {
+            "hosts": {
+                h.name: h.model_dump(exclude={"name"}) for h in self._hosts.values()
+            },
+            "groups": {
+                g.name: g.model_dump(exclude={"name"}) for g in self._groups.values()
+            },
+            "root_points": {
+                r.name: r.model_dump(exclude={"name"})
+                for r in self._root_points.values()
+            },
+        }
+        self._save_raw(self._conn, data)
 
     def _referenced_by(self, name: str) -> list[str]:
-        """Which groups or root points list `name` as a member - used to
-        block deleting a host or group that's still in use elsewhere."""
         refs = [g.name for g in self._groups.values() if name in g.members]
         refs += [r.name for r in self._root_points.values() if name in r.members]
         return refs
@@ -453,4 +415,4 @@ class InventoryStore:
 
 
 # Shared singleton - import this rather than constructing InventoryStore yourself.
-inventory_store = InventoryStore()
+inventory_store = InventoryStore(table="inventory_blob")
