@@ -4,6 +4,11 @@
 // no hierarchy — each root is an independent flat array of
 // { Name, DN } pairs. Rows are always keyed by DN, never by Name,
 // since Name is a derived display string and is not guaranteed unique.
+//
+// "Sync Schema" POSTs to the same endpoint to trigger a fresh scan on
+// the backend; on a 200 response it reloads the table via the normal
+// GET. It's laid out at the opposite end of the toolbar from the
+// filter input so it doesn't read as a search action.
 
 const page = document.querySelector(".schema-page");
 
@@ -12,7 +17,9 @@ if (page) {
     const groupsEl = document.getElementById("schema-groups");
     const bannerEl = document.getElementById("schema-banner");
     const filterInput = document.getElementById("schema-filter");
-    const refreshBtn = document.getElementById("schema-refresh");
+    const syncBtn = document.getElementById("schema-sync");
+    const syncLabel = syncBtn.querySelector(".schema-sync-label");
+    const syncLabelDefault = syncLabel.textContent;
 
     let schema = null; // last successfully loaded payload: { [rootName]: [{Name, DN}, ...] }
 
@@ -22,13 +29,13 @@ if (page) {
         return div.innerHTML;
     }
 
-    function showBanner(message) {
+    function showBanner(message, retryHandler) {
         bannerEl.innerHTML = `
             <span>${escapeHtml(message)}</span>
             <button type="button" class="schema-banner-retry">Try again</button>
         `;
         bannerEl.hidden = false;
-        bannerEl.querySelector(".schema-banner-retry").addEventListener("click", loadSchema);
+        bannerEl.querySelector(".schema-banner-retry").addEventListener("click", retryHandler, { once: true });
     }
 
     function hideBanner() {
@@ -113,7 +120,6 @@ if (page) {
     async function loadSchema() {
         hideBanner();
         renderSkeleton();
-        refreshBtn.disabled = true;
 
         try {
             const response = await fetch(endpoint, {
@@ -135,10 +141,35 @@ if (page) {
         } catch (err) {
             schema = null;
             groupsEl.innerHTML = "";
-            showBanner("Couldn't load the domain schema. Check your connection and try again.");
+            showBanner("Couldn't load the domain schema. Check your connection and try again.", loadSchema);
             console.error("domain_schema: failed to load schema", err);
+        }
+    }
+
+    async function syncSchema() {
+        hideBanner();
+        syncBtn.disabled = true;
+        syncBtn.classList.add("is-syncing");
+        syncLabel.textContent = "Syncing…";
+
+        try {
+            const response = await fetch(endpoint, {
+                method: "POST",
+                headers: { Accept: "application/json" },
+            });
+
+            if (response.status === 200) {
+                await loadSchema();
+            } else {
+                throw new Error(`Sync failed (${response.status})`);
+            }
+        } catch (err) {
+            showBanner("Couldn't sync the domain schema. Check your connection and try again.", syncSchema);
+            console.error("domain_schema: failed to sync schema", err);
         } finally {
-            refreshBtn.disabled = false;
+            syncBtn.disabled = false;
+            syncBtn.classList.remove("is-syncing");
+            syncLabel.textContent = syncLabelDefault;
         }
     }
 
@@ -167,7 +198,7 @@ if (page) {
         filterTimer = setTimeout(renderGroups, 100);
     });
 
-    refreshBtn.addEventListener("click", loadSchema);
+    syncBtn.addEventListener("click", syncSchema);
 
     loadSchema();
 }

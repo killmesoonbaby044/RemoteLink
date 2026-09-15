@@ -2,21 +2,23 @@ import re
 from typing import Annotated
 
 from fastapi import APIRouter, HTTPException, Query, Depends
+from loguru import logger
 
 from app.core.auth.auth_manager import validate_user
+from app.core.database.blob_store import domain_store
 from app.services.domain.ad_search import run_search
 from app.services.domain.schema import ScriptQueryParams
 from app.services.domain.sync_AD_schema import ad_schema_search
 
 from app.services.sessions.script_helpers import InvalidScriptError
 
-router = APIRouter(dependencies=[Depends(validate_user)])
+router = APIRouter(prefix="/domain", dependencies=[Depends(validate_user)])
 
 
 _ARG_BRACKET = re.compile(r"\[(.*)]")
 
 
-@router.post("/domain/scripts")
+@router.post("/scripts")
 async def run_script_endpoint(
     request_params: Annotated[ScriptQueryParams, Query()],
 ) -> dict:
@@ -32,7 +34,21 @@ async def run_script_endpoint(
     return {"result": result}
 
 
-@router.get("/domain/scripts/get_schema")
-async def get_schema():
+@router.get("/inventory")
+async def get_domain() -> dict:
+    return await domain_store.get()
+
+
+@router.post("/inventory")
+async def sync_domain() -> dict:
     schema = await ad_schema_search()
-    return schema
+
+    if not schema:
+        logger.warning("Empty payload from AD schema SYNC")
+        old_schema = await domain_store.get()  # <- see question below
+        if not old_schema:
+            raise HTTPException(
+                status_code=404, detail="Empty payload from AD schema SYNC"
+            )
+
+    return await domain_store.replace(schema)
