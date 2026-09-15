@@ -2,23 +2,19 @@
 
 from __future__ import annotations
 
-from typing import Annotated
 
 from fastapi import Request, APIRouter, Depends
 from fastapi.responses import HTMLResponse
 
-from app.config import AccessToken, templates
+from app.config import templates
 from app.core.auth.auth_manager import validate_user
-from app.services.sessions.script_runner import list_scoped_scripts
+from app.services.sessions.script_helpers import list_scoped_scripts
 
-router = APIRouter()
+router = APIRouter(dependencies=[Depends(validate_user)])
 
 
 @router.get("/", response_class=HTMLResponse)
-async def index(
-    request: Request,
-    _: Annotated[AccessToken, Depends(validate_user)],
-):
+async def index(request: Request):
 
     return templates.TemplateResponse(
         request=request,
@@ -33,10 +29,7 @@ async def index(
 
 
 @router.get("/switches", response_class=HTMLResponse)
-async def connect_page(
-    request: Request,
-    _: Annotated[AccessToken, Depends(validate_user)],
-):
+async def connect_page(request: Request):
     """SSH sessions for unix and switch."""
 
     return templates.TemplateResponse(
@@ -45,28 +38,14 @@ async def connect_page(
     )
 
 
-@router.get("/login", response_class=HTMLResponse)
-async def login_page(request: Request):
-    """login"""
-
-    return templates.TemplateResponse(
-        request=request,
-        name="pages/login.html",
-    )
-
-
 @router.get("/credentials", response_class=HTMLResponse)
-async def credentials_page(
-    request: Request,
-    _: Annotated[AccessToken, Depends(validate_user)],
-):
+async def credentials_page(request: Request):
     return templates.TemplateResponse(request=request, name="pages/credentials.html")
 
 
 @router.get("/terminal", response_class=HTMLResponse)
 async def terminal_page(
     request: Request,
-    _: Annotated[AccessToken, Depends(validate_user)],
     host: str | None = None,
     script: str | None = None,
 ):
@@ -80,10 +59,14 @@ async def terminal_page(
 
 
 @router.get("/switch_inventory", response_class=HTMLResponse)
-async def switch_inventory(
-    request: Request,
-    _: Annotated[AccessToken, Depends(validate_user)],
-):
+async def switch_inventory(request: Request):
     return templates.TemplateResponse(
         request=request, name="pages/switch_inventory.html"
+    )
+
+
+@router.get("/domain_schema", response_class=HTMLResponse)
+async def domain_schema(request: Request):
+    return templates.TemplateResponse(
+        request=request, name="pages/domain_schema.html"
     )

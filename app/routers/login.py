@@ -2,13 +2,23 @@ import httpx
 from fastapi import APIRouter, HTTPException
 from loguru import logger
 from starlette.requests import Request
-from starlette.responses import Response
+from starlette.responses import Response, HTMLResponse
 
-from app.config import token_name
+from app.config import token_name, templates
 from app.core.schemas import Login
 from app.settings import get_config
 
 router = APIRouter()
+
+
+@router.get("/login", response_class=HTMLResponse)
+async def login_page(request: Request):
+    """login"""
+
+    return templates.TemplateResponse(
+        request=request,
+        name="pages/login.html",
+    )
 
 
 @router.post("/auth")

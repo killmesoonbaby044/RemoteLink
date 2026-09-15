@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+
+{% block title %}Domain Schema — RemoteLink{% endblock %}
+
+{% block head %}
+<link rel="stylesheet" href="/static/css/domain/domain_schema.css">
+{% endblock %}
+
+{% block content %}
+<div class="schema-page" data-endpoint="/domain/scripts/get_schema">
+
+    <div class="schema-head">
+        <div>
+            <h1 class="schema-title">Domain schema</h1>
+            <p class="schema-subtitle">Organizational units discovered under each configured root.</p>
+        </div>
+
+        <div class="schema-controls">
+            <div class="schema-search">
+                <svg class="schema-search-icon" width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                    <circle cx="7" cy="7" r="5" stroke="currentColor" stroke-width="1.5"/>
+                    <path d="M11 11L14.5 14.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                </svg>
+                <input
+                    type="search"
+                    id="schema-filter"
+                    class="schema-search-input"
+                    placeholder="Filter by name or DN"
+                    aria-label="Filter organizational units"
+                    autocomplete="off"
+                >
+            </div>
+            <button type="button" id="schema-refresh" class="schema-refresh-btn">
+                Refresh
+            </button>
+        </div>
+    </div>
+
+    <div id="schema-banner" class="schema-banner" hidden role="alert"></div>
+
+    <div id="schema-groups" class="schema-groups" aria-live="polite">
+        <!-- populated by domain_schema.js -->
+    </div>
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script type="module" src="/static/js/domain/domain_schema.js"></script>
+{% endblock %}

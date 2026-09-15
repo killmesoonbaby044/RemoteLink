@@ -58,7 +58,7 @@ export function openTypedSocket(path, {
             return;
         }
         if (event.code === 4403) {
-            window.location.replace("/stub");
+            window.location.replace("/login");
             return;
         }
     onClose?.(socket);

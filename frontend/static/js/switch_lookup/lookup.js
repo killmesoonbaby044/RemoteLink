@@ -10,6 +10,7 @@ import { ACTION_ENDPOINTS, ROOT_POINT_RADIO_NAME, TARGET_RADIO_NAME, MAC_HISTORY
 import { createTargetPicker } from "./target-picker.js";
 import { renderResults, renderError } from "./results.js";
 import * as dom from "./dom.js";
+import {hasCredentials} from "../common/credentials.js";
 
 if (dom.macInput) {
     createAutosuggest({
@@ -38,6 +39,11 @@ const targetPicker = createTargetPicker({
 
 dom.form?.addEventListener("submit", async (event) => {
     event.preventDefault();
+
+    if (!hasCredentials()) {
+        window.location.href = "/credentials";
+        return;
+    }
 
     const mac = dom.macInput.value.trim();
     const targets = targetPicker.getSelectedTargets();

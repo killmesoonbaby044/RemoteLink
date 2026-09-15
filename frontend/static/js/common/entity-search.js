@@ -6,7 +6,6 @@
 // used to keep each block's search history and script-ref packing
 // separate from the other's.
 
-import { openTypedSocket } from "./ws.js";
 import { pushHistory, getRecentSearches, pushSearch } from "./history.js";
 import { packScriptRef } from "./script-ref.js";
 import { createAutosuggest } from "./autosuggest.js";
@@ -154,35 +153,34 @@ export function initEntitySearch({
         });
     }
 
-    function search(query) {
-        if (!searchScript) {
-            setStatus("Search isn't configured (missing data-search-script).");
-            return;
-        }
-
-        results.innerHTML = "";
-        setStatus("Searching...");
-        pushSearch(kind, query);
-
-        const scriptRef = packScriptRef(searchScript, query);
-
-        openTypedSocket(`/ws/script?name=${encodeURIComponent(scriptRef)}`, {
-            onError: () => setStatus("WebSocket error."),
-            types: {
-                search_results: (message, socket) => {
-                    renderResults(message.results || message.computers || message.users || []);
-                    socket.close();
-                },
-                error: (message, socket) => {
-                    setStatus(message.message || "Search failed.");
-                    socket.close();
-                },
-                // "status" messages (e.g. "Starting search...") have
-                // nowhere to go here since there's no terminal -- ignored
-                // on purpose.
-            },
-        });
+function search(query) {
+    if (!searchScript) {
+        setStatus("Search isn't configured (missing data-search-script).");
+        return;
     }
+
+    results.innerHTML = "";
+    setStatus("Searching...");
+    pushSearch(kind, query);
+
+    const scriptRef = packScriptRef(searchScript, query);
+
+    fetch(`/domain/scripts?name=${encodeURIComponent(scriptRef)}`, { method: "POST" })
+        .then((response) => {
+            if (!response.ok) {
+                return response.json().then((body) => {
+                    throw new Error(body.detail || "Search failed.");
+                });
+            }
+            return response.json();
+        })
+        .then((result) => {
+            renderResults(result.records || []);
+        })
+        .catch((err) => {
+            setStatus(err.message || "Search failed.");
+        });
+}
 
     form.addEventListener("submit", (event) => {
         event.preventDefault();

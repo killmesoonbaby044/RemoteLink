@@ -31,7 +31,7 @@ import sys
 from fastapi import WebSocket
 
 from app.services.sessions.io_relay import relay
-from app.services.sessions.script_runner import build_command, resolve_script_path
+from app.services.sessions.script_helpers import build_command, resolve_script_path
 
 IS_WINDOWS = sys.platform == "win32"
 
@@ -102,42 +102,6 @@ class ProcessSession:
 
             if data is None:
                 break
-
-            # --- START INTERCEPTION LOGIC ---
-            text_data = data.decode("utf-8", errors="replace")
-
-            # Check for the specific running status pattern using _RUNNING_LINE
-            match = _RUNNING_LINE.search(text_data)
-            if match:
-                script_path = match.group(1)
-                pc_name = match.group(2).strip()
-                # Send a JSON payload that the frontend JS listens for
-                logging.log(20, f"{script_path} {pc_name}")
-                await self.websocket.send_json(
-                    {
-                        "type": "script",
-                        "path": script_path,
-                        "name": pc_name,
-                    }
-                )
-
-            search_match = _SEARCH_RESULTS_LINE.search(text_data)
-            if search_match:
-
-                raw_results = search_match.group(1).strip()
-
-                computers = [
-                    computer.strip()
-                    for computer in raw_results.split("|")
-                    if computer.strip()
-                ]
-
-                await self.websocket.send_json(
-                    {
-                        "type": "search_results",
-                        "computers": computers,
-                    }
-                )
 
             await self.websocket.send_bytes(data)
 
