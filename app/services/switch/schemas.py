@@ -4,9 +4,13 @@ depend on this one and never on each other."""
 
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, Optional
 
 from pydantic import BaseModel, Field
+
+
+class SSHScriptQueryParams(BaseModel):
+    host: Optional[str] = None
 
 
 class Host(BaseModel):

@@ -19,7 +19,10 @@ from typing import Any, Callable
 
 import asyncssh
 
-from app.services.switch.inventory.inventory import InventoryError, inventory_store
+from app.services.switch.inventory.switch_inventory_service import (
+    switch_inventory_service,
+)
+from app.services.switch.inventory.inventory_errors import InventoryError
 from app.services.switch.mac_lookup import build_mac_filter, find_by_suffix
 from app.services.switch.schemas import (
     CommandResult,
@@ -93,7 +96,7 @@ async def _run_task_on_group(
     every host concurrently (capped by `max_concurrent`), parsing each
     host's output independently."""
 
-    hosts = await inventory_store.resolve_for_lookup(group_name)
+    hosts = await switch_inventory_service.resolve_for_lookup(group_name)
     semaphore = asyncio.Semaphore(max_concurrent)
 
     async def run_one(host: Host) -> HostTaskResult:
