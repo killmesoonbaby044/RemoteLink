@@ -26,9 +26,9 @@ SCRIPTS_DIR.mkdir(parents=True, exist_ok=True)
 SSH_PORT = 22
 
 
-IP_MAP_FILE = BASE_DIR / "app" / "storage" / "ip_map.json"
+IP_MAP_FILE = BASE_DIR / "storage" / "ip_map.json"
 
-APP_DB = BASE_DIR / "app" / "storage" / "inventory.db"
+APP_DB = BASE_DIR / "storage" / "inventory.db"
 
 
 class TokenName(BaseModel):
