@@ -2,19 +2,23 @@
 
 from __future__ import annotations
 
+from typing import Annotated
 
 from fastapi import Request, APIRouter, Depends
+from fastapi.params import Query
 from fastapi.responses import HTMLResponse
 
 from app.config import templates
 from app.core.auth.auth_manager import validate_user
-from app.services.sessions.script_helpers import list_scoped_scripts
+from app.services.domain.schema import ScriptQueryParams
+from app.services.domain.script_helpers import list_scoped_scripts
+from app.services.switch.schemas import SSHScriptQueryParams
 
 router = APIRouter(dependencies=[Depends(validate_user)])
 
 
 @router.get("/", response_class=HTMLResponse)
-async def index(request: Request):
+async def domain_search(request: Request):
 
     return templates.TemplateResponse(
         request=request,
@@ -22,14 +26,14 @@ async def index(request: Request):
         context={
             "pc_scripts": list_scoped_scripts("pc"),
             "user_scripts": list_scoped_scripts("user"),
-            "pc_search_script": "root\\search_pcs",
-            "user_search_script": "root\\search_users",
+            "pc_search_script": "search_pcs",
+            "user_search_script": "search_users",
         },
     )
 
 
 @router.get("/switches", response_class=HTMLResponse)
-async def connect_page(request: Request):
+async def switches(request: Request):
     """SSH sessions for unix and switch."""
 
     return templates.TemplateResponse(
@@ -46,15 +50,30 @@ async def credentials_page(request: Request):
 @router.get("/terminal", response_class=HTMLResponse)
 async def terminal_page(
     request: Request,
-    host: str | None = None,
-    script: str | None = None,
+    request_params: Annotated[ScriptQueryParams, Query()],
 ):
     """Shared xterm.js page for both SSH sessions and script runs."""
-
     return templates.TemplateResponse(
         request=request,
         name="pages/terminal.html",
-        context={"host": host, "script": script},
+        context={
+            "folder": request_params.folder,
+            "script": request_params.script,
+            "args": request_params.args,
+        },
+    )
+
+
+@router.get("/ssh_terminal", response_class=HTMLResponse)
+async def terminal_page(
+    request: Request,
+    request_params: Annotated[SSHScriptQueryParams, Query()],
+):
+    """Shared xterm.js page for both SSH sessions and script runs."""
+    return templates.TemplateResponse(
+        request=request,
+        name="pages/terminal.html",
+        context={"args": request_params.host},
     )
 
 
@@ -67,6 +86,4 @@ async def switch_inventory(request: Request):
 
 @router.get("/domain_schema", response_class=HTMLResponse)
 async def domain_schema(request: Request):
-    return templates.TemplateResponse(
-        request=request, name="pages/domain_schema.html"
-    )
+    return templates.TemplateResponse(request=request, name="pages/domain_schema.html")

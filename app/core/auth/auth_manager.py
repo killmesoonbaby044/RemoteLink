@@ -1,8 +1,3 @@
-# TODO
-# INSTANCE_ID = str(uuid.uuid4())
-# class RegisterRequest(BaseModel):
-#     instance_id: str
-#     username: str
 from typing import Optional
 
 from fastapi import HTTPException
@@ -34,7 +29,6 @@ def validate_user(request: Request) -> Optional[AccessToken]:
             raise InvalidTokenError()
         except JWTError as e:
             logger.error(f"Access token JWTError: {e!r}")
-            # raise HTTPException(status_code=401, detail="Invalid or expired token")
             raise InvalidTokenError()
     else:
         logger.error(f"No Jwt token")

@@ -2,17 +2,25 @@
 
 from __future__ import annotations
 
+from typing import Annotated
+
 from fastapi import APIRouter, WebSocket
+from fastapi.params import Query
+from loguru import logger
 from starlette.websockets import WebSocketDisconnect
 
 from app.core.auth.auth_manager import authenticate_websocket
 from app.services.sessions.ssh_session import SSHSession
+from app.services.switch.schemas import SSHScriptQueryParams
 
 router = APIRouter()
 
 
 @router.websocket("/ws/ssh")
-async def ssh_terminal(websocket: WebSocket) -> None:
+async def ssh_terminal(
+    websocket: WebSocket,
+    request_params: Annotated[SSHScriptQueryParams, Query()],
+) -> None:
     await websocket.accept()
     token = await authenticate_websocket(websocket)
     if token is None:
@@ -27,20 +35,19 @@ async def ssh_terminal(websocket: WebSocket) -> None:
             return
 
         username, password = auth
-        host = websocket.query_params.get("host")
 
-        if not host:
+        if not request_params.host:
             await _send_error(websocket, "Host is required")
             return
 
-        session = SSHSession(websocket, host, username, password)
+        session = SSHSession(websocket, request_params.host, username, password)
         await session.run()
 
     except WebSocketDisconnect:
         pass
 
     except Exception as exc:
-        print(f"SSH error: {exc!r}")
+        logger.warning(f"SSH error: {exc!r}")
         await _send_error(websocket, str(exc))
 
     finally:
