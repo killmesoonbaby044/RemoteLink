@@ -1,49 +1,29 @@
-// A "script ref" packs a script path/name together with an optional
-// argument (e.g. a target PC name) into the single opaque `script` query
-// value that /terminal and /ws/script forward straight through. "|" is
-// invalid in Windows path segments, so it's a safe, reversible delimiter.
-// This is the one place that convention is implemented.
+// Shared by buildScriptHref and buildScriptSocketPath below -- the two
+// query strings differ only in which path they're attached to.
+function buildScriptParams(folder, script, args) {
+    const params = new URLSearchParams({ folder, script });
 
-const DELIMITER = "|";
-
-export function packScriptRef(path, arg) {
-    return arg ? `${path}${DELIMITER}${arg}` : path;
-}
-
-export function unpackScriptRef(ref) {
-    const index = ref.indexOf(DELIMITER);
-
-    if (index === -1) {
-        return { path: ref, arg: null };
+    if (args) {
+        params.set("args", args);
     }
 
-    return {
-        path: ref.slice(0, index),
-        arg: ref.slice(index + 1),
-    };
+    return params;
 }
 
-// Splits a "folder\script" (or "folder/script") path into its two parts,
-// e.g. for callers that need to send them as separate request params
-// instead of as one packed path. Any extra leading segments are joined
-// back into `folder` (only the last segment is treated as the script).
-export function splitScriptPath(path) {
-    const segments = path.split(/[\\/]/).filter(Boolean);
-    const script = segments.pop() || "";
-    const folder = segments.join("\\");
-    return { folder, script };
+// Single place that turns (scope, script, args) into a /terminal URL.
+// Both the plain "Run a script" lists (wired up by script-links.js, at
+// page load) and the targeted user/PC lists (wired up by
+// entity-search.js, once a target is picked) call this same function --
+// so there is exactly one place a script link is ever assembled.
+export function buildScriptHref(folder, script, args) {
+    return `/terminal?${buildScriptParams(folder, script, args).toString()}`;
 }
 
-// Human-friendly label for UI (tab titles, etc.) -- prefers the argument
-// (usually the target PC name) since that's what identifies the session
-// to a person; falls back to the plain script name otherwise.
-export function scriptRefLabel(ref) {
-    const { path, arg } = unpackScriptRef(ref);
-
-    if (arg) {
-        return arg;
-    }
-
-    const segments = path.split(/[\\/]/).filter(Boolean);
-    return segments[segments.length - 1] || path;
+// Same (folder, script, args) triple, but for the /ws/script socket that
+// terminal.js opens once it's landed on the page built by
+// buildScriptHref() above. Keeping this next to buildScriptHref means
+// there's still exactly one place these three params get encoded.
+export function buildScriptSocketPath(folder, script, args) {
+    return `/ws/script?${buildScriptParams(folder, script, args).toString()}`;
 }
+

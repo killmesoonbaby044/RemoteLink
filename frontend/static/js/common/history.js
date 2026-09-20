@@ -6,7 +6,7 @@
 // distinct per kind so a recent PC search doesn't show up in the user
 // search field and vice versa.
 
-import { packScriptRef } from "./script-ref.js";
+import { buildScriptHref } from "./script-ref.js";
 
 const STORAGE_KEY = "terminal_history";
 const HISTORY_CAP = 15;
@@ -24,9 +24,9 @@ export function getHistory() {
 }
 
 // Two entries count as "the same" if they'd render as the same row --
-// same connection target for ssh, same script+argument for script runs.
-// Used by pushHistory to move a repeated action back to the top instead
-// of piling up duplicates.
+// same connection target for ssh, same folder+script+argument for script
+// runs. Used by pushHistory to move a repeated action back to the top
+// instead of piling up duplicates.
 function isSameEntry(a, b) {
     if (a.type !== b.type) {
         return false;
@@ -37,7 +37,7 @@ function isSameEntry(a, b) {
     }
 
     if (a.type === "script") {
-        return a.path === b.path && (a.name || null) === (b.name || null);
+        return a.folder === b.folder && a.script === b.script && (a.args || null) === (b.args || null);
     }
 
     return false;
@@ -84,7 +84,7 @@ export function pushSearch(kind, query, cap = HISTORY_CAP) {
 }
 
 // Builds one DOM row for a history entry, or null if it can't be rendered
-// (unknown type, malformed script path).
+// (unknown type, malformed script entry).
 export function buildHistoryRow(entry) {
     const row = document.createElement("div");
     row.className = "terminal-history-row";
@@ -105,34 +105,26 @@ export function buildHistoryRow(entry) {
         icon.alt = "SSH";
         iconCell.appendChild(icon);
 
-        link.href = `/terminal?host=${encodeURIComponent(entry.host)}`;
+        link.href = `/ssh_terminal?host=${encodeURIComponent(entry.host)}`;
         link.textContent = entry.host;
 
     } else if (entry.type === "script") {
-        const pathParts = entry.path.split(/[\\/]/).filter(Boolean);
-
-        if (pathParts.length < 2) {
+        if (!entry.folder || !entry.script) {
             return null;
         }
 
-        const directory = pathParts[pathParts.length - 2];
-        const filename = pathParts[pathParts.length - 1].replace(/\.[^/.]+$/, "");
+        const filename = entry.script.replace(/\.[^/.]+$/, "");
 
-        const displayName = entry.name
-            ? `${directory}\\${filename} ${entry.name}`
-            : `${directory}\\${filename}`;
-
-        // Falsy-safe: unlike the old inline version, this no longer packs
-        // the literal string "undefined" into the ref when entry.name is
-        // missing (plain, non-targeted script runs).
-        const scriptRef = packScriptRef(`${directory}\\${filename}`, entry.name);
+        const displayName = entry.args
+            ? `${entry.folder} ${filename} ${entry.args}`
+            : `${entry.folder} ${filename}`;
 
         const icon = document.createElement("img");
         icon.src = "/static/icons/script.ico";
         icon.alt = "Script";
         iconCell.appendChild(icon);
 
-        link.href = `/terminal?script=${encodeURIComponent(scriptRef)}`;
+        link.href = buildScriptHref(entry.folder, filename, entry.args);
         link.textContent = displayName;
 
     } else {

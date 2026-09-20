@@ -1,13 +1,16 @@
-{# Renders a grid of script cards. Used both for the server-linked
-   "Run a script" list and the client-populated PC-scripts list, so the
+{# Renders a grid of script cards. Used both for the plain "Run a script"
+   list and the client-populated targeted (user/PC) scripts list, so the
    markup only exists in one place.
 
-   mode="link" (default): each card is a real link to /terminal?script=...
-   mode="data": each card has href="#" + data-script="...", filled in by
-                JS at runtime (see static/js/index.js showPcScripts) #}
+   Every card is href="#" + data-script="..." -- no href is ever built in
+   the template. A plain list declares its own `scope` (e.g. "root") so
+   static/js/script-links.js can fill in every card's href on page load;
+   a targeted list (mode used to be "data") leaves scope off here and
+   has its href filled in later by entity-search.js once a target is
+   picked, using the same buildScriptHref() helper. #}
 
-{% macro script_list(scripts, mode="link", target_class="") %}
-<ul class="script-list">
+{% macro script_list(scripts, target_class="", scope=None) %}
+<ul class="script-list"{% if scope %} data-scope="{{ scope }}"{% endif %}>
 
     {% for name in scripts %}
 
@@ -15,12 +18,8 @@
 
         <a
             class="script-link{{ ' ' + target_class if target_class }}"
-            {% if mode == "link" %}
-            href="/terminal?script={{ name }}"
-            {% else %}
             href="#"
             data-script="{{ name }}"
-            {% endif %}
         >
 
             <span class="script-icon">

@@ -1,6 +1,5 @@
 (() => {
     const LOGIN_URL = "/login";
-    const FORBIDDEN_URL = "/stub";
     const AUTH_ENDPOINT = "/auth";
 
     const originalFetch = window.fetch;
@@ -13,12 +12,7 @@
             return response; // login.js reads and displays its own 401/403
         }
 
-        if (response.status === 401) {
-            window.location.replace(LOGIN_URL);
-            return response;
-        }
-
-        if (response.status === 403) {
+        if (response.status === 401 || response.status === 403) {
             window.location.replace(LOGIN_URL);
             return response;
         }

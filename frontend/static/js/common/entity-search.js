@@ -7,8 +7,17 @@
 // separate from the other's.
 
 import { pushHistory, getRecentSearches, pushSearch } from "./history.js";
-import { packScriptRef, splitScriptPath } from "./script-ref.js";
+import { buildScriptHref } from "./script-ref.js";
 import { createAutosuggest } from "./autosuggest.js";
+
+// For entities whose search results are labelled "display[value]" (the
+// "user" kind), scripts/history should reference only the value inside
+// the brackets -- not the full display label. Names without brackets
+// (e.g. "pc" kind) pass through unchanged.
+function extractEntityValue(name) {
+    const match = name.match(/\[([^\]]+)\]/);
+    return match ? match[1] : name;
+}
 
 export function initEntitySearch({
     kind,
@@ -28,6 +37,7 @@ export function initEntitySearch({
         return;
     }
 
+    const searchFolder = form.dataset.searchFolder;
     const searchScript = form.dataset.searchScript;
 
     const scriptsSection = document.getElementById(scriptsSectionId);
@@ -50,13 +60,12 @@ export function initEntitySearch({
 
     // Points each script in the revealed block at this entity and shows
     // the block -- same script cards as "Run a script", just with the
-    // checked name packed in as the argument (same pack convention as
-    // everywhere else scripts run with a parameter).
+    // checked name passed as a separate "args" param (scope/script/args
+    // are kept as flat query params rather than packed into one value).
     function showScripts(name) {
         scriptLinks.forEach((link) => {
             const scriptName = link.dataset.script;
-            const scriptRef = packScriptRef(`${kind}\\${scriptName}`, name);
-            link.href = `/terminal?script=${encodeURIComponent(scriptRef)}`;
+            link.href = buildScriptHref(kind, scriptName, name);
         });
 
         if (scriptsTarget) {
@@ -91,7 +100,7 @@ export function initEntitySearch({
             return;
         }
 
-        pushHistory({ type: "script", path: `${kind}\\${scriptName}`, name: targetName });
+        pushHistory({ type: "script", folder: kind, script: scriptName, args: targetName });
     });
 
     function renderResults(names) {
@@ -140,7 +149,7 @@ export function initEntitySearch({
                         r.hidden = r !== row;
                     });
 
-                    showScripts(name);
+                    showScripts(extractEntityValue(name));
                 } else {
                     // Expand: show the full list again.
                     rows.forEach((r) => {
@@ -154,8 +163,8 @@ export function initEntitySearch({
     }
 
 function search(query) {
-    if (!searchScript) {
-        setStatus("Search isn't configured (missing data-search-script).");
+    if (!searchFolder || !searchScript) {
+        setStatus("Search isn't configured (missing data-search-folder/data-search-script).");
         return;
     }
 
@@ -163,11 +172,10 @@ function search(query) {
     setStatus("Searching...");
     pushSearch(kind, query);
 
-    const { folder, script } = splitScriptPath(searchScript);
     const params = new URLSearchParams({
-        folder,
-        script,
-        input_data: query,
+        folder: searchFolder,
+        script: searchScript,
+        args: query,
     });
 
     fetch(`/domain/scripts?${params.toString()}`, { method: "POST" })

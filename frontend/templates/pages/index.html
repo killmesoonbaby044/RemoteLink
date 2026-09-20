@@ -35,8 +35,9 @@ Search
             </p>
 
 
-            <form id="user-search-form" class="app-form" data-search-script="{{ user_search_script | default('search_user') }}">
-
+            <form id="user-search-form" class="app-form"
+                  data-search-folder="{{ user_search_folder | default('root') }}"
+                  data-search-script="{{ user_search_script | default('search_user') }}">
                 <label for="user-search-query">
                     Username
                 </label>
@@ -72,7 +73,9 @@ Search
             </p>
 
 
-            <form id="pc-search-form" class="app-form" data-search-script="{{ pc_search_script | default('search_pc') }}">
+            <form id="pc-search-form" class="app-form"
+                  data-search-folder="{{ pc_search_folder | default('root') }}"
+                  data-search-script="{{ pc_search_script | default('search_pc') }}">
 
                 <label for="pc-search-query">
                     PC name
@@ -109,7 +112,7 @@ Search
             <strong id="user-scripts-target"></strong>:
         </p>
 
-        {{ script_list(user_scripts, mode="data", target_class="user-script-link") }}
+        {{ script_list(user_scripts, target_class="user-script-link") }}
 
     </section>
 
@@ -125,7 +128,7 @@ Search
             <strong id="pc-scripts-target"></strong>:
         </p>
 
-        {{ script_list(pc_scripts, mode="data", target_class="pc-script-link") }}
+        {{ script_list(pc_scripts, target_class="pc-script-link") }}
 
     </section>
 

@@ -1,7 +1,7 @@
 import { openTypedSocket } from "./common/ws.js";
 import { pushHistory } from "./common/history.js";
 import { getCredentials } from "./common/credentials.js";
-import { scriptRefLabel } from "./common/script-ref.js";
+import { buildScriptSocketPath } from "./common/script-ref.js";
 
 const terminal = new Terminal({
     cursorBlink: true,
@@ -17,19 +17,22 @@ terminal.focus();
 const statusEl = document.getElementById("status");
 
 const params = new URLSearchParams(window.location.search);
-const host = params.get("host");
+// DOMAIN_SCRIPTS
+const folder = params.get("folder");
 const script = params.get("script");
+const args = params.get("args");
+//SSH SCRIPTS
+const host = params.get("host");
 
 function setStatus(text) {
     statusEl.textContent = text;
 }
 
 // The server already renders a host/script-aware <title> (see
-// terminal.html), this just refines it once the script's packed
-// "path|arg" ref is available client-side, since the target PC name
-// (the arg) is usually more useful in a tab than the raw script path.
+// terminal.html); this just refines it client-side, preferring the
+// target PC name (args) over the raw script name when one was passed.
 if (script) {
-    document.title = scriptRefLabel(script);
+    document.title = args || script;
 } else if (host) {
     document.title = host;
 }
@@ -85,26 +88,27 @@ function connectSSH(targetHost) {
         onOpen: (socket) => {
             setStatus(`Authenticating to ${targetHost}...`);
             socket.send(JSON.stringify({ type: "auth", username, password }));
+            pushHistory({ type: "ssh", host: targetHost });
         },
     });
 }
 
-function runScript(name) {
+function runScript(folder, script, args) {
     // Fully interactive: the server runs this script inside a PTY, so
     // prompts, typed input, and keystrokes flow both ways in real time,
     // same as an SSH session.
-    openTerminalSocket(`/ws/script?name=${encodeURIComponent(name)}`, {
-        onOpen: () => setStatus(`Starting ${name}...`),
+    openTerminalSocket(buildScriptSocketPath(folder, script, args), {
+        onOpen: () => setStatus(`Starting ${script}...`),
         extraTypes: {
-            script: (message) => {
-                pushHistory({ type: "script", path: message.path, name: message.name });
+            script: () => {
+                pushHistory({ type: "script", folder, script, args });
             },
         },
     });
 }
 
-if (script) {
-    runScript(script);
+if (folder) {
+    runScript(folder, script, args);
 } else if (!host) {
     setStatus("Host is not specified");
     terminal.write("\r\nERROR: Host is not specified\r\n");

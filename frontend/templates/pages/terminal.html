@@ -28,25 +28,11 @@
     <div class="terminal-info">
 
         {% if script %}
-
-        <span>
-            Script:
-        </span>
-
-        <strong id="host-name">
-            {{ script }}
-        </strong>
-
+        <span>Script:</span>
+        <strong id="script-name">{{ script | e }}</strong>
         {% else %}
-
-        <span>
-            Host:
-        </span>
-
-        <strong id="host-name">
-            {{ host }}
-        </strong>
-
+        <span>Host:</span>
+        <strong id="host-name">{{ host | e }}</strong>
         {% endif %}
 
         <span id="status">
@@ -67,6 +53,6 @@
 
 <script src="/static/vendor/xterm.js"></script>
 
-<script type="module" src="/static/js/app.js"></script>
+<script type="module" src="/static/js/terminal.js"></script>
 
 {% endblock %}

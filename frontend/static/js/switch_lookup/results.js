@@ -57,7 +57,7 @@ export function renderResults(resultsEl, results) {
         // Add `display: block` (plus your normal cell padding) on
         // .lookup-results-row-link in CSS so the link fills the <td>.
         const terminalHref = row.host
-            ? `/terminal?host=${encodeURIComponent(row.address)}`
+            ? `/ssh_terminal?host=${encodeURIComponent(row.address)}`
             : null;
 
         for (const value of [row.host, row.vlan, row.mac, row.interface]) {

@@ -27,6 +27,5 @@ connectForm?.addEventListener("submit", (event) => {
         return;
     }
 
-    pushHistory({ type: "ssh", host });
-    window.location.href = `/terminal?host=${encodeURIComponent(host)}`;
+    window.location.href = `/ssh_terminal?host=${encodeURIComponent(host)}`;
 });
