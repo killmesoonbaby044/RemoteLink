@@ -8,7 +8,7 @@ param(
     [string]$Query
 )
 
-chcp 65001 >nul
+[Console]::OutputEncoding = [System.Text.Encoding]::UTF8
 $ErrorActionPreference = "Stop"
 
 if ([string]::IsNullOrWhiteSpace($Query)) {
