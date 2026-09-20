@@ -19,10 +19,7 @@ import subprocess
 from dataclasses import dataclass
 
 from app.services.domain.schema import ScriptQueryParams
-from app.services.sessions.script_helpers import (
-    build_command,
-    resolve_script_path_new,
-)
+from app.services.domain.script_helpers import build_command
 
 DEFAULT_TIMEOUT_SECONDS = 30
 
@@ -54,8 +51,7 @@ async def run_script(
     resolve to a real file inside SCRIPTS_DIR.
     """
 
-    path = resolve_script_path_new(params)
-    command = build_command(path, params.input_data)
+    path, command = build_command(params)
 
     loop = asyncio.get_running_loop()
     timed_out = False

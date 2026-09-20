@@ -24,7 +24,6 @@ async def run_search(
 ) -> list:
 
     result = await run_script(args, timeout=timeout)
-
     if result.timed_out or result.returncode != 0:
         return []
 

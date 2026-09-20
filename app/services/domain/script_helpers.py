@@ -6,13 +6,11 @@ handled by ProcessSession (backend/services/process_session.py).
 from __future__ import annotations
 
 from pathlib import Path
+import shlex
 
 from app.config import SCRIPTS_DIR
+from app.services.domain.exceptions import InvalidScriptError
 from app.services.domain.schema import ScriptQueryParams
-
-
-class InvalidScriptError(Exception):
-    """Raised when a requested script name is missing, unsafe, or invalid."""
 
 
 def list_scripts() -> list[str]:
@@ -40,44 +38,33 @@ def list_scoped_scripts(name) -> list[str]:
     )
 
 
-def resolve_script_path(name: str) -> Path:
+def _resolve_script_path(params: ScriptQueryParams) -> Path:
     """Resolve `name` to a file inside SCRIPTS_DIR, rejecting traversal
     (e.g. "../../etc/passwd") or anything that escapes SCRIPTS_DIR."""
-
-    candidate = (SCRIPTS_DIR / name).resolve()
     scripts_dir = SCRIPTS_DIR.resolve()
-
-    if scripts_dir not in candidate.parents:
-        raise InvalidScriptError(f"'{name}' is not a valid script")
-
-    if not candidate.is_file():
-        raise InvalidScriptError(f"Script '{name}' was not found")
-
-    return candidate
-
-
-def resolve_script_path_new(args: ScriptQueryParams) -> Path:
-
-    scripts_dir = SCRIPTS_DIR.resolve()
-
-    folder_path = (scripts_dir / args.folder).resolve()
+    folder_path = (scripts_dir / params.folder).resolve()
 
     if scripts_dir not in folder_path.parents and folder_path != scripts_dir:
+        raise InvalidScriptError("Invalid script folder")
 
-        raise InvalidScriptError(f"Invalid script folder")
+    # params.script is used as a glob pattern below. If it contains path
+    # separators or glob metacharacters ("*", "?", "[", "..") a caller could
+    # escape folder_path or match unintended files. Reject anything that
+    # isn't a plain filename stem.
+    if any(c in params.script for c in ("/", "\\", "*", "?", "[", "..")):
+        raise InvalidScriptError(f"Invalid script name '{params.script}'")
 
-    matches = list(folder_path.glob(f"{args.script}.*"))
-
+    matches = list(folder_path.glob(f"{params.script}.*"))
     if len(matches) != 1 or not matches[0].is_file():
-
-        raise InvalidScriptError(f"Script '{args.script}' was not found")
+        raise InvalidScriptError(f"Script '{params.script}' was not found")
 
     return matches[0]
 
 
-def build_command(path: Path, arg: str | None = None) -> list[str]:
+def build_command(params: ScriptQueryParams) -> tuple[Path, list[str]]:
     """Pick an interpreter based on file extension. Falls back to
     executing the file directly, which needs a shebang + execute bit."""
+    path = _resolve_script_path(params)
 
     suffix = path.suffix.lower()
 
@@ -99,7 +86,13 @@ def build_command(path: Path, arg: str | None = None) -> list[str]:
     else:
         command = [str(path)]
 
-    if arg:
-        command.append(arg)
+    if params.args:
+        if isinstance(params.args, str):
+            # A single string of args needs proper tokenizing, not appending
+            # as one giant argv element (which would pass it to the
+            # interpreter/script as a single mangled argument).
+            command.extend(shlex.split(params.args))
+        else:
+            command.extend(params.args)
 
-    return command
+    return path, command

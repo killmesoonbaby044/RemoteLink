@@ -24,14 +24,14 @@ spot where POSIX wants bytes and Windows wants str.
 from __future__ import annotations
 
 import asyncio
-import logging
 import re
 import sys
 
 from fastapi import WebSocket
 
+from app.services.domain.schema import ScriptQueryParams
 from app.services.sessions.io_relay import relay
-from app.services.sessions.script_helpers import build_command, resolve_script_path
+from app.services.domain.script_helpers import build_command
 
 IS_WINDOWS = sys.platform == "win32"
 
@@ -53,16 +53,15 @@ _SEARCH_RESULTS_LINE = re.compile(
 class ProcessSession:
     """Bridges a local script's PTY stdio with a browser WebSocket."""
 
-    def __init__(self, websocket: WebSocket, name: str, arg: str | None = None):
+    def __init__(self, websocket: WebSocket, params: ScriptQueryParams | None = None):
         self.websocket = websocket
-        self.name = name
-        self.arg = arg
+        self.params = params
+
         self.pty: PtyProcess | None = None
 
     async def run(self) -> None:
-        path = resolve_script_path(self.name)
-        command = build_command(path, self.arg)
-        await self._send_status(f"Starting {self.name}...")
+        path, command = build_command(self.params)
+        await self._send_status(f"Starting {self.params.script}...")
 
         loop = asyncio.get_running_loop()
         # spawn() does the fork/exec (or CreateProcess on Windows) --
@@ -70,14 +69,14 @@ class ProcessSession:
         self.pty = await loop.run_in_executor(
             None,
             lambda: PtyProcess.spawn(
-                command, cwd=str(path.parent), dimensions=(_ROWS, _COLS)
+                command, cwd=str(path.parent.parent), dimensions=(_ROWS, _COLS)
             ),
         )
 
         await relay(self._read_process_output(), self._read_browser_input())
 
         returncode = await loop.run_in_executor(None, self.pty.wait)
-        await self._send_status(f"'{self.name}' exited with code {returncode}")
+        await self._send_status(f"'{self.params.script}' exited with code {returncode}")
 
     async def close(self) -> None:
         if not self.pty:

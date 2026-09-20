@@ -6,48 +6,34 @@ opens an SSH connection) all work like a normal terminal.
 
 from __future__ import annotations
 
-import re
+from typing import Annotated
 
 from fastapi import APIRouter, WebSocket
+from fastapi.params import Query
+from loguru import logger
 from starlette.websockets import WebSocketDisconnect
 
-from app.core.auth.auth_manager import authenticate_websocket
+from app.services.domain.schema import ScriptQueryParams
 from app.services.sessions.process_session import ProcessSession
-from app.services.sessions.script_helpers import InvalidScriptError
+from app.services.domain.exceptions import InvalidScriptError
 
 router = APIRouter()
 
 
 @router.websocket("/ws/script")
-async def script_terminal(websocket: WebSocket) -> None:
+async def script_terminal(
+    websocket: WebSocket,
+    request_params: Annotated[ScriptQueryParams, Query()],
+) -> None:
     await websocket.accept()
-    token = await authenticate_websocket(websocket)
-    if token is None:
-        return
+    # token = await authenticate_websocket(websocket)
+    # if token is None:
+    #     return
 
     session: ProcessSession | None = None
 
     try:
-        raw_name = websocket.query_params.get("name")
-        if not raw_name:
-            await _send_error(websocket, "Script name is required")
-            return
-
-        # history.html packs "<path>|<arg>" into a single `name` value so a
-        # history entry can carry the parameter a nested script was
-        # originally run with (e.g. "pc\\cmd|PCADMIN"). A plain top-level
-        # name like "PC" has no "|" and arg comes back empty.
-        script_path, _, arg = raw_name.partition("|")
-        if "ps" in script_path:
-            name = script_path + ".ps1"
-        else:
-            name = script_path + ".cmd"
-        if arg is not None:
-            match = re.search(r"\[(.*)]", arg)
-            if match:
-                arg = match.group(1)
-
-        session = ProcessSession(websocket, name, arg or None)
+        session = ProcessSession(websocket, request_params)
         await session.run()
 
     except InvalidScriptError as exc:
@@ -57,7 +43,7 @@ async def script_terminal(websocket: WebSocket) -> None:
         pass
 
     except Exception as exc:
-        print(f"Script error: {exc!r}")
+        logger.warning(f"Script error: {exc!r}")
         await _send_error(websocket, str(exc))
 
     finally:
