@@ -3,7 +3,7 @@
 // script-ref.js -- this module only finds the lists, fills in hrefs,
 // and records history on click.
 
-import { pushHistory } from "./history.js";
+import { pushHistory } from "../shared/history/store.js";
 import { buildScriptHref } from "./script-ref.js";
 
 // Wires up one plain (non-targeted) "Run a script" list: fills in every
@@ -38,11 +38,3 @@ export function initScriptList(container) {
         });
     });
 }
-
-// Finds every plain script list on the page (any ".script-list" that
-// declared a "scope") and wires each one up. Targeted lists never carry
-// a "scope" attribute here, so this leaves them untouched for
-// entity-search.js to handle on its own.
-// export function initAllScriptLists(root = document) {
-//     root.querySelectorAll(".script-list[data-scope]").forEach(initScriptList);
-// }

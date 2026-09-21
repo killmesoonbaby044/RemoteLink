@@ -16,7 +16,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 
 STATIC_DIR = BASE_DIR / "frontend" / "static"
-TEMPLATES_DIR = BASE_DIR / "frontend" / "templates"
+TEMPLATES_DIR = BASE_DIR / "frontend" / "template"
 
 templates = Jinja2Templates(directory=str(TEMPLATES_DIR))
 # Where runnable script files live (used by the "run a script" feature).

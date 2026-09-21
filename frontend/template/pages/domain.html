@@ -1,0 +1,146 @@
+{% extends "base.html" %}
+{% from "macros/autosuggest_input.html" import autosuggest_input %}
+{% from "macros/script_list.html" import script_list %}
+
+
+{% block title %}
+Search
+{% endblock %}
+
+
+{% block head %}
+
+<link rel="stylesheet" href="/static/css/switches.css">
+<link rel="stylesheet" href="/static/css/forms.css">
+<link rel="stylesheet" href="/static/css/domain_search.css">
+<link rel="stylesheet" href="/static/css/script-list.css">
+
+{% endblock %}
+
+
+{% block content %}
+
+<div class="connect-container">
+
+    <div class="connect-row">
+
+        <section class="connect-section search-section">
+
+            <h1>
+                Search users
+            </h1>
+
+            <p class="script-description">
+                Search by name, then select one to continue.
+            </p>
+
+
+            <form id="user-search-form" class="app-form"
+                  data-search-folder="{{ user_search_folder | default('root') }}"
+                  data-search-script="{{ user_search_script | default('search_user') }}">
+                <label for="user-search-query">
+                    Username
+                </label>
+
+                <div class="input-row">
+
+                    {{ autosuggest_input("user-search-query", "query", "jdoe") }}
+
+                    <button type="submit">
+                        Search
+                    </button>
+
+                </div>
+
+            </form>
+
+
+            <p class="search-status" id="user-search-status"></p>
+
+            <div class="search-results" id="user-search-results"></div>
+
+        </section>
+
+
+        <section class="connect-section search-section">
+
+            <h1>
+                Search PC
+            </h1>
+
+            <p class="script-description">
+                Search by name, then select one to connect.
+            </p>
+
+
+            <form id="pc-search-form" class="app-form"
+                  data-search-folder="{{ pc_search_folder | default('root') }}"
+                  data-search-script="{{ pc_search_script | default('search_pc') }}">
+
+                <label for="pc-search-query">
+                    PC name
+                </label>
+
+                <div class="input-row">
+
+                    {{ autosuggest_input("pc-search-query", "query", "PCADMIN") }}
+
+                    <button type="submit">
+                        Search
+                    </button>
+
+                </div>
+
+            </form>
+
+
+            <p class="search-status" id="pc-search-status"></p>
+
+            <div class="search-results" id="pc-search-results"></div>
+
+        </section>
+
+    </div>
+
+
+    {% if user_scripts %}
+
+    <section class="connect-section user-scripts-block" id="user-scripts-section" hidden>
+
+        <p class="script-description">
+            Run a script for
+            <strong id="user-scripts-target"></strong>:
+        </p>
+
+        {{ script_list(user_scripts, target_class="user-script-link") }}
+
+    </section>
+
+    {% endif %}
+
+
+    {% if pc_scripts %}
+
+    <section class="connect-section pc-scripts-block" id="pc-scripts-section" hidden>
+
+        <p class="script-description">
+            Run a script for
+            <strong id="pc-scripts-target"></strong>:
+        </p>
+
+        {{ script_list(pc_scripts, target_class="pc-script-link") }}
+
+    </section>
+
+    {% endif %}
+
+</div>
+
+{% endblock %}
+
+
+{% block scripts %}
+
+<script type="module" src="/static/js/domain/search/main.js"></script>
+
+{% endblock %}

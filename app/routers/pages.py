@@ -17,12 +17,12 @@ from app.services.switch.schemas import SSHScriptQueryParams
 router = APIRouter(dependencies=[Depends(validate_user)])
 
 
-@router.get("/", response_class=HTMLResponse)
+@router.get("/domain", response_class=HTMLResponse)
 async def domain_search(request: Request):
 
     return templates.TemplateResponse(
         request=request,
-        name="pages/index.html",
+        name="pages/domain.html",
         context={
             "pc_scripts": list_scoped_scripts("pc"),
             "user_scripts": list_scoped_scripts("user"),

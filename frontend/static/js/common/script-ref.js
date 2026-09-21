@@ -1,3 +1,13 @@
+// Legacy: a "script ref" used to pack a script path/name together with
+// an optional argument (e.g. a target PC name) into a single opaque
+// `script` query value that /terminal and /ws/script forwarded straight
+// through, using "|" as a delimiter. That convention has been replaced
+// by separate `scope`/`script`/`args` query params (see
+// buildScriptHref() below) everywhere in this app that still generates
+// links. The pack/unpack/split helpers that supported the old
+// convention have been removed - confirmed nothing in this tree
+// imported them.
+
 // Shared by buildScriptHref and buildScriptSocketPath below -- the two
 // query strings differ only in which path they're attached to.
 function buildScriptParams(folder, script, args) {
@@ -13,8 +23,8 @@ function buildScriptParams(folder, script, args) {
 // Single place that turns (scope, script, args) into a /terminal URL.
 // Both the plain "Run a script" lists (wired up by script-links.js, at
 // page load) and the targeted user/PC lists (wired up by
-// entity-search.js, once a target is picked) call this same function --
-// so there is exactly one place a script link is ever assembled.
+// domain/search/api.js, once a target is picked) call this same
+// function -- so there is exactly one place a script link is assembled.
 export function buildScriptHref(folder, script, args) {
     return `/terminal?${buildScriptParams(folder, script, args).toString()}`;
 }

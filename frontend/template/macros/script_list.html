@@ -1,0 +1,44 @@
+{# Renders a grid of script cards. Used both for the plain "Run a script"
+   list and the client-populated targeted (user/PC) scripts list, so the
+   markup only exists in one place.
+
+   Every card is href="#" + data-script="..." -- no href is ever built in
+   the template. A plain list declares its own `scope` (e.g. "root") so
+   static/js/script-links.js can fill in every card's href on page load;
+   a targeted list (mode used to be "data") leaves scope off here and
+   has its href filled in later by domain/search/render.js once a
+   target is picked, using the same buildScriptHref() helper. #}
+
+{% macro script_list(scripts, target_class="", scope=None) %}
+<ul class="script-list"{% if scope %} data-scope="{{ scope }}"{% endif %}>
+
+    {% for name in scripts %}
+
+    <li class="script-item">
+
+        <a
+            class="script-link{{ ' ' + target_class if target_class }}"
+            href="#"
+            data-script="{{ name }}"
+        >
+
+            <span class="script-icon">
+                &gt;_
+            </span>
+
+            <span class="script-name">
+                {{ name }}
+            </span>
+
+            <span class="script-arrow">
+                ›
+            </span>
+
+        </a>
+
+    </li>
+
+    {% endfor %}
+
+</ul>
+{% endmacro %}
