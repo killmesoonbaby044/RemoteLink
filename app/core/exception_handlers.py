@@ -4,7 +4,7 @@ from starlette.requests import Request
 from starlette.responses import JSONResponse, HTMLResponse
 
 from app.core.auth.exception import AuthenticationError, UserDisabledError
-from app.services.domain.exceptions import InvalidScriptError
+from app.services.domain.exceptions import InvalidScriptError, FileCheckError
 from app.services.switch.inventory.inventory_errors import (
     InventoryError,
     NotFoundError,
@@ -78,10 +78,15 @@ async def validation_exception_handler(
     )
 
 
+def file_check_handler(request: Request, exc: FileCheckError) -> JSONResponse:
+    return JSONResponse(status_code=400, content={"detail": str(exc)})
+
+
 exception_handlers = {
     AuthenticationError: authentication_error_handler,
     UserDisabledError: user_disabled_handler,
     InventoryError: inventory_error_handler,
     InvalidScriptError: script_error_handler,
-    RequestValidationError: validation_exception_handler,
+    FileCheckError: file_check_handler,
+    # RequestValidationError: validation_exception_handler,
 }

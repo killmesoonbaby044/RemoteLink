@@ -1,12 +1,13 @@
 from typing import Annotated
 
-from fastapi import APIRouter, HTTPException, Query, Depends
+from fastapi import APIRouter, HTTPException, Query, Depends, UploadFile, File
 from loguru import logger
 
 from app.core.auth.auth_manager import validate_user
 from app.core.database.blob_store import domain_store
 from app.services.domain.ad_search import run_search
-from app.services.domain.schema import ScriptQueryParams
+from app.services.domain.doc_parsing import parse_document
+from app.services.domain.schema import ScriptQueryParams, ScriptAddUser
 from app.services.domain.sync_AD_schema import ad_schema_search
 
 router = APIRouter(prefix="/domain", dependencies=[Depends(validate_user)])
@@ -22,6 +23,20 @@ async def run_script_endpoint(
     if "search_users" in request_params.script:
         result = [f'{item["Name"]}[{item["SamAccountName"]}]' for item in result]
     return {"result": result}
+
+
+@router.post("/script/add_user")
+async def run_script_endpoint(
+    user: ScriptAddUser,
+) -> dict:
+    print(user)
+    return {"result": user}
+
+
+@router.post("/script/upload_user_file")
+async def upload(file: UploadFile = File(...)):
+    print("file")
+    return parse_document(file.file)
 
 
 @router.get("/inventory")

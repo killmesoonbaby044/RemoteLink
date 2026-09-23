@@ -14,6 +14,12 @@ No build tooling anywhere in `static/js/` — every page loads its entry file di
 loaded as classic (non-module) scripts because they need to run before/without module
 scoping (xterm exposes a global `Terminal`; redirect.js patches `window.fetch` globally).
 
+`templates/pages/` mirrors the same scope split as `static/js/` where a scope has more than
+one or two pages — the domain pages live under `templates/pages/domain/` (`domain.html`,
+`domain_schema.html`, `domain_add_user.html`) rather than flat in `templates/pages/`. New
+domain pages go there too; other scopes stay flat until they have enough pages to justify
+the same move.
+
 ## The split
 
 `static/js/` has four top-level folders, split by **what owns the code**, not by page:
@@ -21,7 +27,7 @@ scoping (xterm exposes a global `Terminal`; redirect.js patches `window.fetch` g
 | Folder | What goes here |
 |---|---|
 | `switch/` | Everything specific to the switch scope: `connect/`, `lookup/`, `inventory/` |
-| `domain/` | Everything specific to the AD domain scope: `search/`, `schema/` |
+| `domain/` | Everything specific to the AD domain scope: `search/`, `schema/`, `add-user/` |
 | `shared/` | Cross-scope **features** — their own state, DOM, endpoints, used by both scopes: `auth/`, `history/`, `credentials/`, `terminal/` |
 | `common/` | Stateless **helpers** with no identity of their own — a fetch wrapper, an href builder. Don't know what app they're in. |
 
@@ -38,8 +44,8 @@ instead.
 ## Module shape
 
 Every feature folder (`switch/lookup`, `switch/inventory`, `domain/search`, `domain/schema`,
-`shared/terminal`) follows the same shape, first established in `switch/lookup` — see its
-own `README_SWITCH.md` for the original write-up:
+`domain/add-user`, `shared/terminal`) follows the same shape, first established in
+`switch/lookup` — see its own `README_SWITCH.md` for the original write-up:
 
 - **`config.js`** *(if the feature has real config)* — static constants: endpoint names,
   radio-group names, per-instance settings. Skip this file if there's nothing to put in it
@@ -60,14 +66,27 @@ own `README_SWITCH.md` for the original write-up:
 New feature, same shape. Deviating from it silently is how the codebase got messy the
 first time.
 
+A feature can outgrow the plain five files without breaking the shape — `domain/add-user`
+splits off two extra files rather than bloating `main.js` or overloading `render.js`/`api.js`
+with things that aren't quite pure DOM-building or fetching:
+
+- **`upload.js`** — the "Upload file" flow (pick a file, send it, pre-fill rows from the
+  result) has its own multi-step state that doesn't fit `render.js`'s "pure, no side
+  effects" rule. It's still wired up *from* `main.js`, same as everything else — `main.js`
+  passes it the row-management functions it needs rather than `upload.js` importing
+  `main.js` back.
+- **`ou-history.js`** — see "History convention" below; this is a second, deliberately
+  separate history module, not a replacement for `shared/history/store.js`.
+
 ## Page → entry file map
 
 | Template | Loads |
 |---|---|
 | `pages/switches.html` | `switch/connect/main.js` + `switch/lookup/lookup.js` |
 | `pages/switch_inventory.html` | `switch/inventory/main.js` |
-| `pages/domain.html` | `domain/search/main.js` |
-| `pages/domain_schema.html` | `domain/schema/main.js` |
+| `pages/domain/domain.html` | `domain/search/main.js` |
+| `pages/domain/domain_schema.html` | `domain/schema/main.js` |
+| `pages/domain/domain_add_user.html` | `domain/add-user/main.js` |
 | `pages/terminal.html` | `shared/terminal/main.js` |
 | `pages/credentials.html` | `shared/credentials/page.js` |
 | `pages/login.html` | `shared/auth/login.js` |
@@ -80,6 +99,14 @@ attempted (a click, or a page load with the target already known) — never afte
 for a server confirmation or a socket to open. This was a deliberate fix (history used to
 fire at 4 different moments depending on the file); keep new history calls consistent with
 it rather than reintroducing a "wait for confirmation" variant.
+
+Not everything that looks like "history" belongs in `shared/history/store.js`, though.
+`domain/add-user/ou-history.js` keeps its own `domain_add_user_ou_history` localStorage key
+for the OU picker's "recently used" list — by design, not oversight. It's a convenience
+local to one picker, not something that should show up in the header History dropdown or
+get mixed into `terminal_history`/`search_history:<kind>`. If a future feature wants a
+"recent picks" list that's similarly picker-local rather than global, follow this pattern
+(own key, own tiny module) instead of overloading `shared/history`.
 
 ## Known gaps
 

@@ -22,13 +22,29 @@ async def domain_search(request: Request):
 
     return templates.TemplateResponse(
         request=request,
-        name="pages/domain.html",
+        name="pages/domain/domain.html",
         context={
             "pc_scripts": list_scoped_scripts("pc"),
             "user_scripts": list_scoped_scripts("user"),
             "pc_search_script": "search_pcs",
             "user_search_script": "search_users",
         },
+    )
+
+
+@router.get("/domain/add_user", response_class=HTMLResponse)
+async def domain_search(request: Request):
+
+    return templates.TemplateResponse(
+        request=request,
+        name="pages/domain/domain_add_user.html",
+    )
+
+
+@router.get("/domain_schema", response_class=HTMLResponse)
+async def domain_schema(request: Request):
+    return templates.TemplateResponse(
+        request=request, name="pages/domain/domain_schema.html"
     )
 
 
@@ -82,8 +98,3 @@ async def switch_inventory(request: Request):
     return templates.TemplateResponse(
         request=request, name="pages/switch_inventory.html"
     )
-
-
-@router.get("/domain_schema", response_class=HTMLResponse)
-async def domain_schema(request: Request):
-    return templates.TemplateResponse(request=request, name="pages/domain_schema.html")
