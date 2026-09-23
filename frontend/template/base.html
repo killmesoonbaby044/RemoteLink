@@ -30,28 +30,65 @@
             RemoteLink
         </a>
 
-        <nav class="nav">
+        <div class="header-actions">
             {% include "macros/history.html" %}
 
-            <a href="/domain_schema">
-                Domain
-            </a>
-            <a href="/switches">
-                Switches
-            </a>
-            <a href="/switch_inventory">
-                Inventory
-            </a>
-
-            <a href="/credentials">
-                Credentials
-            </a>
-
-        </nav>
+            <button
+                type="button"
+                class="circle-btn circle-btn--menu"
+                id="menu-toggle"
+                aria-label="Open menu"
+                aria-expanded="false"
+                aria-controls="site-drawer"
+            >
+                <span class="circle-btn-bg"></span>
+                <span class="circle-btn-icon" aria-hidden="true"><span></span><span></span></span>
+            </button>
+        </div>
 
     </div>
 
 </header>
+
+<div class="drawer-overlay" id="drawer-overlay"></div>
+
+<aside class="drawer" id="site-drawer" aria-label="Site navigation">
+
+    <div class="drawer-head">
+        <span class="drawer-title">
+            <span class="drawer-dot" aria-hidden="true"></span>
+            Menu
+        </span>
+
+        <button
+            type="button"
+            class="circle-btn circle-btn--close"
+            id="drawer-close"
+            aria-label="Close menu"
+        >
+            <span class="circle-btn-bg"></span>
+            <span class="circle-btn-icon" aria-hidden="true"><span></span><span></span></span>
+        </button>
+    </div>
+
+    <div class="drawer-body">
+        <ul class="nav" style="margin:0;padding:0">
+            <li class="nav-item" style="--i:0">
+                <a class="nav-link" href="/domain_schema"><span class="nav-link-text">Domain</span></a>
+            </li>
+            <li class="nav-item" style="--i:1">
+                <a class="nav-link" href="/switches"><span class="nav-link-text">Switches</span></a>
+            </li>
+            <li class="nav-item" style="--i:2">
+                <a class="nav-link" href="/switch_inventory"><span class="nav-link-text">Inventory</span></a>
+            </li>
+            <li class="nav-item" style="--i:3">
+                <a class="nav-link" href="/credentials"><span class="nav-link-text">Credentials</span></a>
+            </li>
+        </ul>
+    </div>
+
+</aside>
 {% endblock %}
 
 
@@ -65,6 +102,7 @@
 
 <script type="module" src="/static/js/shared/history/widget.js"></script>
 <script src="/static/js/shared/auth/redirect.js"></script>
+<script src="/static/js/common/nav.js"></script>
 {% block scripts %}
 {% endblock %}
 
