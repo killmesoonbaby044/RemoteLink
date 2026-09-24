@@ -1,0 +1,203 @@
+/* =========================
+   Switches domain — device lookup + results (new style)
+
+   The generic card/form/autosuggest layout lives in css/shared/
+   (forms.css, connect-layout.css, autosuggest.css). The "Run a script"
+   wrapper (.scripts-section) and the lookup-rise keyframes also live in
+   connect-layout.css. Only switch-specific pieces are here.
+   ========================= */
+
+/* ---------- Lookup form ---------- */
+
+.lookup-section .app-form { gap: 22px; }
+
+.lookup-section .form-field {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin: 0;
+}
+
+/* inputs / select share one height and the same sharp look */
+.lookup-section select,
+.lookup-section input[type="text"] {
+    width: 100%;
+    height: 48px;
+    padding: 0 14px;
+    margin: 0;
+
+    background: var(--color-surface);
+    color: var(--color-text);
+    border: 1px solid var(--color-border-strong);
+    border-radius: 0;
+    font-family: var(--font-sans);
+    font-size: 14.5px;
+
+    transition: border-color var(--transition-base), background var(--transition-base), box-shadow var(--transition-base);
+}
+
+.lookup-section select:hover,
+.lookup-section input[type="text"]:hover { border-color: var(--color-text-muted); }
+
+.lookup-section select:focus,
+.lookup-section input[type="text"]:focus {
+    outline: none;
+    border-color: var(--color-accent);
+    background-color: var(--color-surface-2);
+    box-shadow: inset 0 -2px 0 var(--color-accent);
+}
+
+.lookup-section select {
+    appearance: none;
+    -webkit-appearance: none;
+    padding-right: 42px;
+    cursor: pointer;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1.5l5 5 5-5' fill='none' stroke='%23a1a1aa' stroke-width='1.5'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 16px center;
+}
+
+.lookup-section select:disabled {
+    color: var(--color-text-muted);
+    cursor: wait;
+}
+
+/* "Run against" blocks */
+.lookup-target-block { margin-bottom: 16px; }
+.lookup-target-block:last-child { margin-bottom: 0; }
+
+.lookup-target-subheading {
+    display: block;
+    margin-bottom: 8px;
+
+    color: var(--color-text-muted);
+    font-size: 12px;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+}
+
+.lookup-target-subheading::before { content: "("; }
+.lookup-target-subheading::after  { content: ")"; }
+
+/* ---------- Lookup results ---------- */
+
+.lookup-results {
+    margin-top: 36px;
+    padding-top: 28px;
+    border-top: 1px solid var(--color-border-strong);
+    animation: lookup-rise 500ms cubic-bezier(0.4, 0, 0.2, 1) backwards;
+}
+
+.lookup-results-table-wrap {
+    max-height: 480px;
+    overflow: auto;
+
+    background: var(--color-surface);
+    border: 1px solid var(--color-border-strong);
+    border-radius: 0;
+}
+
+.lookup-results-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 14px;
+}
+
+.lookup-results-table th,
+.lookup-results-table td {
+    padding: 14px 20px;
+    text-align: left;
+    white-space: nowrap;
+}
+
+.lookup-results-table thead th {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+
+    background: var(--color-surface);
+    color: var(--color-text-muted);
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    border-bottom: 1px solid var(--color-border-strong);
+}
+
+.lookup-results-table tbody td {
+    color: var(--color-text-secondary);
+    font-family: var(--font-mono);
+    border-bottom: 1px solid var(--color-border);
+    transition: background var(--transition-fast), color var(--transition-fast);
+}
+
+.lookup-results-table tbody tr:last-child td { border-bottom: none; }
+
+.lookup-results-table tbody tr:hover td {
+    background: var(--color-surface-2);
+    color: var(--color-text);
+}
+
+/* blue bar on the left edge of the hovered row */
+.lookup-results-table tbody tr:hover td:first-child {
+    box-shadow: inset 2px 0 0 var(--color-accent);
+}
+
+.lookup-results-host-link {
+    color: inherit;
+    text-decoration: underline;
+    text-decoration-color: var(--color-border-strong);
+    text-underline-offset: 4px;
+    transition: color var(--transition-fast), text-decoration-color var(--transition-fast);
+}
+
+.lookup-results-host-link:hover {
+    color: var(--color-accent);
+    text-decoration-color: var(--color-accent);
+}
+
+.lookup-empty {
+    padding: 20px 0;
+    color: var(--color-text-muted);
+    font-size: 12px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+}
+
+.lookup-error {
+    color: #f08383;
+    font-size: 14px;
+}
+
+/* ---------- Manage inventory link ---------- */
+
+.manage-inventory-button {
+    display: inline-block;
+    margin-bottom: 16px;
+    padding: 11px 20px;
+
+    color: var(--color-text-secondary);
+    background: transparent;
+    border: 1px solid var(--color-border-strong);
+    border-radius: 0;
+    text-decoration: none;
+    font-size: 12.5px;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+
+    transition: color var(--transition-base),
+                background var(--transition-base),
+                border-color var(--transition-base);
+}
+
+.manage-inventory-button:hover {
+    color: var(--color-text);
+    background: var(--color-surface-hover);
+    border-color: var(--color-accent);
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .lookup-results { animation: none; }
+}

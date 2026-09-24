@@ -1,0 +1,115 @@
+/* =========================
+   Connect-style card + two-column row
+
+   Generic page layout: the card look, the "two cards side by side"
+   row, and the input + button row. Used by every page that lays out
+   this way (Switches connect/lookup, Domain search, ...).
+
+   The autosuggest dropdown now lives in shared/autosuggest.css.
+   ========================= */
+
+.connect-section {
+    position: relative;
+    margin-bottom: 40px;
+    padding: 32px;
+
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: 0;
+}
+
+/* The card holding the focused field (e.g. an open autosuggest list)
+   sits above the cards that follow it. */
+.connect-section:focus-within { z-index: 10; }
+
+.script-description {
+    margin: 0 0 28px 0;
+    color: var(--color-text-muted);
+    font-size: 14.5px;
+    line-height: 1.5;
+}
+
+/* Two cards side by side ("Search users" + "Search PC").
+   minmax(0, 1fr) keeps both exactly equal in width; align-items: stretch
+   keeps them exactly equal in HEIGHT too, so the cards never look uneven
+   when one of them shows a status line or a list of results. */
+.connect-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    align-items: stretch;
+    gap: 24px;
+    margin-bottom: 40px;
+}
+
+.connect-row .connect-section { margin-bottom: 0; }
+
+/* Status text ("Searching…", "Search failed.") is drawn in the empty space
+   already inside the card (its bottom padding) instead of adding height, so
+   the cards keep their original default size and never jump when a status
+   appears. The 12px top margin comes from search.css.
+   Once a results list follows, the status goes back to normal flow so the
+   two never overlap. */
+.connect-row .search-status {
+    height: 0;
+    overflow: visible;
+    line-height: 20px;
+}
+
+.connect-row .search-status:has(+ .search-results:not(:empty)) {
+    height: auto;
+}
+
+
+/* =========================
+   Input + submit button, side by side
+   Both controls share one height so they line up exactly.
+   ========================= */
+
+.input-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.input-row > .autosuggest {
+    flex: 1;
+    min-width: 160px;
+}
+
+.app-form .input-row input {
+    height: 48px;
+    margin-bottom: 0;
+    width: 100%;
+}
+
+.app-form .input-row button {
+    height: 48px;
+    margin-top: 0;
+    padding-top: 0;
+    padding-bottom: 0;
+    white-space: nowrap;
+}
+
+
+/* =========================
+   "Run a script" wrapper
+   Not a .connect-section card, so it needs its own spacing and
+   entrance. Shared by Switches and Domain pages.
+   ========================= */
+
+@keyframes lookup-rise {
+    from { opacity: 0; transform: translateY(14px); }
+    to   { opacity: 1; transform: none; }
+}
+
+.scripts-section {
+    margin-bottom: 40px;
+    animation: lookup-rise 600ms cubic-bezier(0.4, 0, 0.2, 1) 240ms backwards;
+}
+
+.scripts-section:last-child { margin-bottom: 0; }
+
+@media (prefers-reduced-motion: reduce) {
+    .scripts-section { animation: none; }
+}

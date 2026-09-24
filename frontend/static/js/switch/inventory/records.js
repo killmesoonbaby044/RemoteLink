@@ -5,8 +5,8 @@
  * into any of this.
  */
 
-import { api, SCHEMA } from "./api.js";
-import { state, byName, splitMembers, el, toast, renderEmptyBlock, refresh } from "./core.js";
+import {api, SCHEMA} from "./api.js";
+import {byName, el, refresh, renderEmptyBlock, splitMembers, state, toast} from "./core.js";
 
 // ---------------------------------------------------------------
 // Stats
@@ -16,6 +16,46 @@ function renderStats() {
     document.getElementById("stat-roots").textContent = state.roots.length;
     document.getElementById("stat-groups").textContent = state.groups.length;
     document.getElementById("stat-hosts").textContent = state.hosts.length;
+}
+
+// ---------------------------------------------------------------
+// Table search / filter
+// ---------------------------------------------------------------
+// One free-text query per table, kept here (not in core state) since it's
+// pure UI filtering over already-loaded records - it doesn't survive a
+// refresh() re-fetch on purpose... actually it does: `filters` lives at
+// module scope, so it's untouched by refresh() and only cleared if the
+// user clears the box themselves.
+
+const filters = { root: "", group: "", host: "" };
+
+function matchesFilter(type, item) {
+    const q = filters[type];
+    if (!q) return true;
+    const haystack = [item.name, item.address, item.description]
+        .filter(Boolean)
+        .join(" ")
+        .toLowerCase();
+    return haystack.includes(q);
+}
+
+/** Wires the three table search inputs. Call once at startup - the inputs
+ *  are static markup, not re-rendered, so this doesn't need to run again
+ *  after every refresh(). Each input re-renders only its own table. */
+export function setupSearchInputs() {
+    const wiring = [
+        ["search-roots", "root", renderRootsTable],
+        ["search-groups", "group", renderGroupsTable],
+        ["search-hosts", "host", renderHostsTable],
+    ];
+    for (const [inputId, type, renderFn] of wiring) {
+        const input = document.getElementById(inputId);
+        if (!input) continue;
+        input.addEventListener("input", () => {
+            filters[type] = input.value.trim().toLowerCase();
+            renderFn();
+        });
+    }
 }
 
 // ---------------------------------------------------------------
@@ -110,9 +150,16 @@ function renderRootsTable() {
         ]));
         return;
     }
+    const filtered = state.roots.filter((r) => matchesFilter("root", r));
+    if (filtered.length === 0) {
+        tbody.appendChild(el("tr", {}, [
+            el("td", { colspan: "4" }, [renderEmptyBlock("No matches.", "Try a different search term.")]),
+        ]));
+        return;
+    }
     const hostsByName = byName(state.hosts);
     const groupsByName = byName(state.groups);
-    for (const root of state.roots) {
+    for (const root of filtered) {
         const tr = el("tr", {}, [
             el("td", { class: "cell-name", text: root.name }),
             membersSummaryCell(root.members, hostsByName, groupsByName),
@@ -132,9 +179,16 @@ function renderGroupsTable() {
         ]));
         return;
     }
+    const filtered = state.groups.filter((g) => matchesFilter("group", g));
+    if (filtered.length === 0) {
+        tbody.appendChild(el("tr", {}, [
+            el("td", { colspan: "4" }, [renderEmptyBlock("No matches.", "Try a different search term.")]),
+        ]));
+        return;
+    }
     const hostsByName = byName(state.hosts);
     const groupsByName = byName(state.groups);
-    for (const group of state.groups) {
+    for (const group of filtered) {
         const tr = el("tr", {}, [
             el("td", { class: "cell-name", text: group.name }),
             membersSummaryCell(group.members, hostsByName, groupsByName),
@@ -154,7 +208,14 @@ function renderHostsTable() {
         ]));
         return;
     }
-    for (const host of state.hosts) {
+    const filtered = state.hosts.filter((h) => matchesFilter("host", h));
+    if (filtered.length === 0) {
+        tbody.appendChild(el("tr", {}, [
+            el("td", { colspan: "5" }, [renderEmptyBlock("No matches.", "Try a different search term.")]),
+        ]));
+        return;
+    }
+    for (const host of filtered) {
         const tr = el("tr", {}, [
             el("td", { class: "cell-name", text: host.name }),
             el("td", { class: "cell-name", text: host.address || "—" }),
@@ -200,27 +261,87 @@ function buildFieldRow(type, field, existing, isEdit) {
     return wrap;
 }
 
+function byNameAsc(a, b) {
+    return a.name.localeCompare(b.name, undefined, { sensitivity: "base" });
+}
+
+/** Builds the "what can be added" picker used by the root point / group
+ *  create+edit modal: a search box up top to cut down a long list, and
+ *  the existing Groups / Hosts sections below it (sorted A→Z so the
+ *  search actually helps). Filtering just hides rows - it never removes
+ *  them from the DOM, so collectPayload()'s checked-checkbox query still
+ *  sees every selection regardless of what's currently filtered out. */
 function buildMembersBox(fieldKey, type, existing) {
+    const wrapper = el("div", { class: "members-field" });
     const box = el("div", { class: "multiselect", id: `f-${fieldKey}` });
     const selected = new Set((existing && existing[fieldKey]) || []);
 
-    const hostOptions = state.hosts;
-    const groupOptions = state.groups.filter((g) => !(type === "group" && existing && g.name === existing.name));
+    const hostOptions = [...state.hosts].sort(byNameAsc);
+    const groupOptions = state.groups
+        .filter((g) => !(type === "group" && existing && g.name === existing.name))
+        .sort(byNameAsc);
 
     if (hostOptions.length === 0 && groupOptions.length === 0) {
         box.appendChild(el("div", { class: "multiselect-empty", text: "No hosts or groups exist yet." }));
-        return box;
+        wrapper.appendChild(box);
+        return wrapper;
     }
 
+    let groupHeading = null;
+    let hostHeading = null;
+    const groupRows = [];
+    const hostRows = [];
+
     if (groupOptions.length > 0) {
-        box.appendChild(el("div", { class: "multiselect-heading", text: "Groups" }));
-        for (const g of groupOptions) box.appendChild(memberCheckbox(fieldKey, g.name, selected));
+        groupHeading = el("div", { class: "multiselect-heading", text: "Groups" });
+        box.appendChild(groupHeading);
+        for (const g of groupOptions) {
+            const row = memberCheckbox(fieldKey, g.name, selected);
+            groupRows.push(row);
+            box.appendChild(row);
+        }
     }
     if (hostOptions.length > 0) {
-        box.appendChild(el("div", { class: "multiselect-heading", text: "Hosts" }));
-        for (const h of hostOptions) box.appendChild(memberCheckbox(fieldKey, h.name, selected));
+        hostHeading = el("div", { class: "multiselect-heading", text: "Hosts" });
+        box.appendChild(hostHeading);
+        for (const h of hostOptions) {
+            const row = memberCheckbox(fieldKey, h.name, selected);
+            hostRows.push(row);
+            box.appendChild(row);
+        }
     }
-    return box;
+
+    const noMatches = el("div", { class: "multiselect-empty is-hidden", text: "No matches." });
+    box.appendChild(noMatches);
+
+    const searchInput = el("input", {
+        type: "search",
+        class: "search-input multiselect-search",
+        placeholder: "Filter hosts and groups…",
+        autocomplete: "off",
+    });
+    searchInput.addEventListener("input", () => {
+        const q = searchInput.value.trim().toLowerCase();
+        let groupVisible = 0;
+        let hostVisible = 0;
+        for (const row of groupRows) {
+            const match = row.textContent.toLowerCase().includes(q);
+            row.style.display = match ? "" : "none";
+            if (match) groupVisible++;
+        }
+        for (const row of hostRows) {
+            const match = row.textContent.toLowerCase().includes(q);
+            row.style.display = match ? "" : "none";
+            if (match) hostVisible++;
+        }
+        if (groupHeading) groupHeading.classList.toggle("is-hidden", groupVisible === 0);
+        if (hostHeading) hostHeading.classList.toggle("is-hidden", hostVisible === 0);
+        noMatches.classList.toggle("is-hidden", groupVisible + hostVisible > 0);
+    });
+
+    wrapper.appendChild(searchInput);
+    wrapper.appendChild(box);
+    return wrapper;
 }
 
 function memberCheckbox(fieldKey, name, selectedSet) {

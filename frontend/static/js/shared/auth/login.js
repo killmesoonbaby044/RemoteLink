@@ -59,7 +59,7 @@ async function handleSubmit(event) {
         }
 
         setStatus("Signed in.", "success");
-        window.location.href = data.redirect || "/domain";
+        window.location.href = data.redirect || "/home";
     } catch (networkError) {
         setStatus("Could not reach the server. Please try again.", "error");
         submitButton.disabled = false;

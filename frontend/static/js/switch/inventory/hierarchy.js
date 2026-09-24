@@ -6,13 +6,22 @@
  * root point from its table (the Groups / Root points tabs), which goes
  * through the normal create+edit modal.
  *
- * Default expand state: root points and groups render expanded so the
- * group/subgroup structure is visible at a glance. Each node's hosts are
- * tucked behind their own collapsed "N hosts" toggle so a group with a
- * lot of hosts doesn't drown out the structure - click it to reveal them.
+ * Default expand state: root points render expanded, so their direct
+ * groups show up by name as soon as you land on the tab - that's the
+ * "roots and their groups" view. Every group node - nested or not -
+ * renders collapsed: click one to reveal what's inside it, subgroups
+ * and hosts together, by real name, in a single step. There's no
+ * separate "hosts" toggle to click through first.
+ *
+ * The "Expand all" / "Collapse all" toolbar buttons (wired in
+ * setupTreeControls()) override this per-node default for the whole
+ * tree at once. That same function also makes sure manual clicks don't
+ * "stick" past a collapse: closing any node resets everything nested
+ * inside it back to collapsed, so reopening it always shows the same
+ * default view rather than remembering a group you'd expanded earlier.
  */
 
-import { state, byName, splitMembers, el, renderEmptyBlock } from "./core.js";
+import {byName, el, renderEmptyBlock, splitMembers, state} from "./core.js";
 
 function chevron() {
     const span = document.createElement("span");
@@ -33,25 +42,12 @@ function hostLeaf(hostName, hostsByName) {
     ]);
 }
 
-/** Collapsed-by-default "N hosts" toggle nested under a root/group node.
- *  Returns null when there are no hosts to show, so callers can skip it. */
-function hostsSection(hostNames, hostsByName) {
-    if (hostNames.length === 0) return null;
-
-    const details = el("details", { class: "tree-node" }); // no "open" - collapsed by default
-    details.appendChild(el("summary", { class: "tree-row" }, [
-        chevron(),
-        el("span", { class: "tree-badge tree-badge-host", text: "H" }),
-        el("span", { class: "tree-name", text: "Hosts" }),
-        el("span", { class: "tree-trailing" }, [
-            el("span", { class: "tree-meta", text: `${hostNames.length} host${hostNames.length === 1 ? "" : "s"}` }),
-        ]),
-    ]));
-
-    const children = el("div", { class: "tree-children" });
+/** Appends each host directly as a leaf row into `children` - no
+ *  wrapping "Hosts" toggle. Hosts are full members just like subgroups,
+ *  so they show up the same way: as soon as their parent group/root is
+ *  open, by name, not hidden behind a second click on a generic label. */
+function appendHostLeaves(children, hostNames, hostsByName) {
     for (const hName of hostNames) children.appendChild(hostLeaf(hName, hostsByName));
-    details.appendChild(children);
-    return details;
 }
 
 function renderRootNode(root, groupsByName, hostsByName) {
@@ -73,8 +69,7 @@ function renderRootNode(root, groupsByName, hostsByName) {
     for (const gName of groupNames) {
         children.appendChild(renderGroupNode(groupsByName.get(gName), groupsByName, hostsByName, new Set()));
     }
-    const hostsNode = hostsSection(hostNames, hostsByName);
-    if (hostsNode) children.appendChild(hostsNode);
+    appendHostLeaves(children, hostNames, hostsByName);
 
     details.appendChild(children);
     return details;
@@ -94,7 +89,12 @@ function renderGroupNode(group, groupsByName, hostsByName, path) {
     const { hostNames, groupNames } = splitMembers(group.members, hostsByName, groupsByName);
     const summaryMeta = `${groupNames.length} subgroup${groupNames.length === 1 ? "" : "s"} · ${hostNames.length} host${hostNames.length === 1 ? "" : "s"}`;
 
-    const details = el("details", { class: "tree-node", open: true });
+    // No "open: true" here on purpose - a group's own toggle is what
+    // keeps its hosts collapsed by default. Root nodes stay expanded
+    // (see renderRootNode) so a group's *name* is visible right away;
+    // what's inside the group - subgroups and hosts alike - only shows
+    // once this node itself is clicked open.
+    const details = el("details", { class: "tree-node" });
     details.appendChild(el("summary", { class: "tree-row" }, [
         chevron(),
         el("span", { class: "tree-badge tree-badge-group", text: "G" }),
@@ -109,11 +109,49 @@ function renderGroupNode(group, groupsByName, hostsByName, path) {
     for (const sub of groupNames) {
         children.appendChild(renderGroupNode(groupsByName.get(sub), groupsByName, hostsByName, nextPath));
     }
-    const hostsNode = hostsSection(hostNames, hostsByName);
-    if (hostsNode) children.appendChild(hostsNode);
+    appendHostLeaves(children, hostNames, hostsByName);
 
     details.appendChild(children);
     return details;
+}
+
+/** Wires the "Expand all" / "Collapse all" toolbar buttons, plus the
+ *  behavior that keeps manual expand/collapse clicks from "sticking":
+ *  closing any tree node resets every node nested inside it back to
+ *  collapsed, so collapsing then re-expanding a root always lands back
+ *  on the same default view, not on whatever a group inside it was
+ *  last left at. A plain <details> keeps its own open state even while
+ *  hidden inside a closed ancestor - nothing clears that on its own.
+ *
+ *  Call once at startup - the buttons are static markup, and the
+ *  listener below is delegated to #tree-view, which renderTree() only
+ *  ever clears the *contents* of, never the element itself, so neither
+ *  needs rewiring after a refresh(). */
+export function setupTreeControls() {
+    const expandBtn = document.getElementById("tree-expand-all");
+    const collapseBtn = document.getElementById("tree-collapse-all");
+    if (expandBtn) {
+        expandBtn.addEventListener("click", () => {
+            document.querySelectorAll("#tree-view details.tree-node").forEach((d) => { d.open = true; });
+        });
+    }
+    if (collapseBtn) {
+        collapseBtn.addEventListener("click", () => {
+            document.querySelectorAll("#tree-view details.tree-node").forEach((d) => { d.open = false; });
+        });
+    }
+
+    // "toggle" doesn't bubble, so catching it from every nested node
+    // with one listener means listening on the *capture* phase instead
+    // - capture still reaches every descendant regardless of bubbling.
+    const treeView = document.getElementById("tree-view");
+    if (treeView) {
+        treeView.addEventListener("toggle", (e) => {
+            const node = e.target;
+            if (node.tagName !== "DETAILS" || !node.classList.contains("tree-node") || node.open) return;
+            node.querySelectorAll("details.tree-node").forEach((d) => { d.open = false; });
+        }, true);
+    }
 }
 
 /** Renders the whole hierarchy tab. Registered with core's onRender(). */

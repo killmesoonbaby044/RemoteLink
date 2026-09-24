@@ -4,12 +4,17 @@
 // together and loops over every entry in SEARCH_KINDS. A page missing a
 // block's elements (getSearchDom returns null) is skipped.
 
-import { getRecentSearches, pushSearch, pushHistory } from "../../shared/history/store.js";
-import { createAutosuggest } from "../../common/autosuggest.js";
-import { SEARCH_KINDS } from "./config.js";
-import { getSearchDom } from "./dom.js";
-import { searchEntities, scriptHrefFor } from "./api.js";
-import { renderResults, showScripts, hideScripts } from "./render.js";
+import {getRecentSearches, pushHistory, pushSearch} from "../../shared/history/store.js";
+import {createAutosuggest} from "../../common/autosuggest.js";
+import {SEARCH_KINDS} from "./config.js";
+import {getSearchDom} from "./dom.js";
+import {scriptHrefFor, searchEntities} from "./api.js";
+import {hideScripts, renderResults, showScripts} from "./render.js";
+
+// Every initialised search block (user, PC). Used so that selecting a
+// target in one block hides the scripts panel of the others - only one
+// targeted scripts panel is visible at a time.
+const blocks = [];
 
 function initSearchBlock(config) {
     const dom = getSearchDom(config);
@@ -17,6 +22,8 @@ function initSearchBlock(config) {
     if (!dom) {
         return;
     }
+
+    blocks.push(dom);
 
     createAutosuggest({
         wrapper: dom.wrapper,
@@ -52,9 +59,15 @@ function initSearchBlock(config) {
         searchEntities(dom.form, query)
             .then((names) => {
                 renderResults({ config, dom }, names, {
-                    onSelect: (name) =>
+                    onSelect: (name) => {
                         showScripts({ dom }, name, (scriptName, targetName) =>
-                            scriptHrefFor(config.kind, scriptName, targetName)),
+                            scriptHrefFor(config.kind, scriptName, targetName));
+
+                        // only one targeted scripts panel at a time
+                        blocks
+                            .filter((other) => other !== dom && other.scriptsSection)
+                            .forEach((other) => hideScripts({ dom: other }));
+                    },
                     onDeselect: () => hideScripts({ dom }),
                 });
             })

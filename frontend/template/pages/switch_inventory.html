@@ -3,7 +3,7 @@
 {% block title %}Switches — RemoteLink{% endblock %}
 
 {% block head %}
-<link rel="stylesheet" href="/static/css/switch_inventory.css">
+<link rel="stylesheet" href="/static/css/switches/switch_inventory.css">
 {% endblock %}
 
 {% block content %}
@@ -40,6 +40,10 @@
     </nav>
 
     <div class="inv-panel is-active" data-panel="hierarchy">
+        <div class="inv-toolbar">
+            <button class="btn btn-sm" id="tree-expand-all" type="button">Expand all</button>
+            <button class="btn btn-sm" id="tree-collapse-all" type="button">Collapse all</button>
+        </div>
         <p class="inv-hint">Everything under a root point, nested the way it resolves. Anything not attached to a root shows up under "Not attached to a root" so nothing gets lost.</p>
         <div class="tree" id="tree-view">
             <p class="inv-empty">Loading inventory…</p>
@@ -47,7 +51,8 @@
     </div>
 
     <div class="inv-panel" data-panel="roots">
-        <div class="inv-toolbar">
+        <div class="inv-toolbar inv-toolbar--with-search">
+            <input type="search" id="search-roots" class="search-input" placeholder="Filter root points…" autocomplete="off">
             <button class="btn btn-primary" data-action="create" data-type="root" type="button">+ New root point</button>
         </div>
         <div class="table-scroll">
@@ -66,7 +71,8 @@
     </div>
 
     <div class="inv-panel" data-panel="groups">
-        <div class="inv-toolbar">
+        <div class="inv-toolbar inv-toolbar--with-search">
+            <input type="search" id="search-groups" class="search-input" placeholder="Filter groups…" autocomplete="off">
             <button class="btn btn-primary" data-action="create" data-type="group" type="button">+ New group</button>
         </div>
         <div class="table-scroll">
@@ -85,7 +91,8 @@
     </div>
 
     <div class="inv-panel" data-panel="hosts">
-        <div class="inv-toolbar">
+        <div class="inv-toolbar inv-toolbar--with-search">
+            <input type="search" id="search-hosts" class="search-input" placeholder="Filter hosts by name, address, description…" autocomplete="off">
             <button class="btn btn-primary" data-action="create" data-type="host" type="button">+ New host</button>
         </div>
         <div class="table-scroll">

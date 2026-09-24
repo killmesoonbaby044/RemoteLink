@@ -1,0 +1,13 @@
+/* Domain-only: styling for the targeted user/PC scripts panels
+   revealed by JS. .search-section, .user-script-link and .pc-script-link
+   are plain JS hooks with no dedicated styling. The "Run a script"
+   wrapper (.scripts-section) lives in shared/connect-layout.css. */
+
+.user-scripts-block strong,
+.pc-scripts-block strong {
+    color: var(--color-accent);
+    font-family: var(--font-mono);
+    font-weight: 600;
+}
+
+/* Search results here are styled by shared/search.css; nothing else needed. */

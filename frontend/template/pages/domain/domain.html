@@ -10,10 +10,11 @@ Search
 
 {% block head %}
 
-<link rel="stylesheet" href="/static/css/switches.css">
-<link rel="stylesheet" href="/static/css/forms.css">
-<link rel="stylesheet" href="/static/css/domain_search.css">
-<link rel="stylesheet" href="/static/css/script-list.css">
+<link rel="stylesheet" href="/static/css/shared/forms.css">
+<link rel="stylesheet" href="/static/css/shared/connect-layout.css">
+<link rel="stylesheet" href="/static/css/shared/search.css">
+<link rel="stylesheet" href="/static/css/shared/script-list.css">
+<link rel="stylesheet" href="/static/css/domain/domain.css">
 
 {% endblock %}
 
@@ -103,35 +104,6 @@ Search
     </div>
 
 
-    <section class="connect-section add-user-entry">
-
-        <h1>
-            Add user
-        </h1>
-
-        <p class="script-description">
-            Create one or more domain user accounts.
-        </p>
-
-        <a href="/domain/add_user" class="script-link user-script-link">
-
-            <span class="script-icon">
-                +
-            </span>
-
-            <span class="script-name">
-                Add user
-            </span>
-
-            <span class="script-arrow">
-                ›
-            </span>
-
-        </a>
-
-    </section>
-
-
     {% if user_scripts %}
 
     <section class="connect-section user-scripts-block" id="user-scripts-section" hidden>
@@ -163,6 +135,35 @@ Search
 
     {% endif %}
 
+
+    <section class="scripts-section">
+
+        <h1>
+            Run a script
+        </h1>
+
+        <p class="script-description">
+            Select a script to run.
+        </p>
+
+        <ul class="script-list">
+            <li class="script-item">
+                <a class="script-link" href="/domain/add_user">
+                    <span class="script-icon">
+                        +
+                    </span>
+
+                    <span class="script-name">
+                        Add user
+                    </span>
+
+                    <span class="script-arrow">
+                        ›
+                    </span>
+                </a>
+            </li>
+        </ul>
+    </section>
 </div>
 
 {% endblock %}

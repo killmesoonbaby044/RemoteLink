@@ -6,9 +6,9 @@
  * the tab/modal chrome that isn't specific to either one.
  */
 
-import { refresh, onRender } from "./core.js";
-import { renderRecords, setupModalChrome } from "./records.js";
-import { renderTree } from "./hierarchy.js";
+import {onRender, refresh} from "./core.js";
+import {renderRecords, setupModalChrome, setupSearchInputs} from "./records.js";
+import {renderTree, setupTreeControls} from "./hierarchy.js";
 
 function setupTabs() {
     const tabs = document.querySelectorAll(".inv-tab");
@@ -32,5 +32,7 @@ document.addEventListener("DOMContentLoaded", () => {
     onRender(renderTree);
     setupTabs();
     setupModalChrome();
+    setupSearchInputs();
+    setupTreeControls();
     refresh();
 });

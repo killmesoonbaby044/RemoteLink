@@ -1,0 +1,162 @@
+/* =========================================================
+   Shared form layout (Connect / Credentials / Search)
+   New style: sharp corners, 1px lines, display headings,
+   "(LABEL)" captions, blue square marker.
+   ========================================================= */
+
+.connect-container {
+    max-width: 1240px;
+    margin: 40px auto;
+}
+
+.connect-container h1 {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin: 0 0 12px;
+
+    font-family: var(--font-display);
+    font-size: clamp(30px, 3.4vw, 44px);
+    font-weight: 400;
+    line-height: 1;
+    letter-spacing: 0.01em;
+    text-transform: uppercase;
+    color: var(--color-text);
+}
+
+.connect-container h1::before {
+    content: "";
+    width: 10px;
+    height: 10px;
+    flex-shrink: 0;
+    background: var(--color-accent);
+}
+
+/* Sections rise in one after another; also plays when JS un-hides a block */
+@keyframes page-rise {
+    from { opacity: 0; transform: translateY(16px); }
+    to   { opacity: 1; transform: none; }
+}
+
+/* "backwards" (not "both"): once the entrance ends nothing stays applied, so the
+   section does not keep its own stacking layer and dropdowns can overlap
+   the section below. */
+.connect-section {
+    animation: page-rise 600ms cubic-bezier(0.4, 0, 0.2, 1) backwards;
+}
+
+.connect-row > .connect-section:nth-child(2) { animation-delay: 80ms; }
+.connect-container > .connect-section        { animation-delay: 160ms; }
+
+/* Every form carries .app-form -- new forms need no extra CSS. */
+.app-form {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.app-form label:not(.search-result-label) {
+    font-size: 12px;
+    font-weight: 500;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--color-text-muted);
+}
+
+.app-form label:not(.search-result-label)::before { content: "("; }
+.app-form label:not(.search-result-label)::after  { content: ")"; }
+
+.app-form input {
+    padding: 13px 14px;
+    margin-bottom: 6px;
+
+    background: var(--color-surface);
+    color: var(--color-text);
+    font-family: inherit;
+    font-size: 15px;
+
+    border: 1px solid var(--color-border-strong);
+    border-radius: 0;
+
+    transition:
+        border-color var(--transition-base),
+        box-shadow var(--transition-base),
+        background var(--transition-base);
+}
+
+.app-form input::placeholder { color: var(--color-text-muted); }
+
+.app-form input:hover { border-color: var(--color-text-muted); }
+
+.app-form input:focus {
+    outline: none;
+    border-color: var(--color-accent);
+    background: var(--color-surface-2);
+    box-shadow: inset 0 -2px 0 var(--color-accent);
+}
+
+.app-form button {
+    margin-top: 8px;
+    padding: 14px 24px;
+
+    border: 1px solid var(--color-accent);
+    border-radius: 0;
+
+    background: var(--color-accent);
+    color: #fff;
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+
+    cursor: pointer;
+    transition: background var(--transition-base), border-color var(--transition-base);
+}
+
+.app-form button:hover {
+    background: var(--color-accent-hover);
+    border-color: var(--color-accent-hover);
+}
+
+.app-form button:active {
+    background: var(--color-accent-active);
+    border-color: var(--color-accent-active);
+}
+
+.app-form button:focus-visible {
+    outline: 2px solid var(--color-accent);
+    outline-offset: 3px;
+}
+
+.app-form .search-result-label {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 14px;
+
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: 0;
+
+    cursor: pointer;
+    font-weight: 400;
+    transition: background var(--transition-fast), border-color var(--transition-fast);
+}
+
+.app-form .search-result-label:hover {
+    background: var(--color-surface-hover);
+    border-color: var(--color-border-strong);
+}
+
+#credentials-status {
+    margin-top: 14px;
+    min-height: 20px;
+    color: var(--color-text-secondary);
+    font-size: 14px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .connect-section { animation: none; }
+}

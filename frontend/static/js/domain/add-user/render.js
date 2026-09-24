@@ -2,7 +2,7 @@
 // writes. main.js owns the `schema` state and decides when to call
 // these; it also owns which row is "active" for the OU modal.
 
-import { escapeHtml } from "../schema/render.js";
+import {escapeHtml} from "../schema/render.js";
 
 let rowCounter = 0;
 
@@ -48,7 +48,7 @@ export function clearRow(row) {
     delete row.dataset.ouName;
     ouChosen.hidden = true;
     ouChosen.textContent = "";
-    ouBtn.textContent = "Choose OU…";
+    ouBtn.textContent = "Choose OU";
     ouHint.hidden = true;
     ouHint.textContent = "";
     setRowStatus(row, "");

@@ -1,0 +1,92 @@
+{% extends "base.html" %}
+
+
+{% block title %}
+RemoteLink
+{% endblock %}
+
+
+{% block head %}
+
+<link rel="stylesheet" href="/static/css/home.css">
+
+{% endblock %}
+
+
+{% block content %}
+
+<div class="home">
+
+    <header class="home-hero">
+
+        <p class="home-eyebrow">
+            Welcome
+        </p>
+
+        <h1 class="home-title">
+            RemoteLink
+        </h1>
+
+        <p class="home-lead">
+            Manage domain accounts, switches and access credentials from one place.
+        </p>
+
+    </header>
+
+
+    <nav class="home-sections" aria-label="Sections">
+
+        <ul class="home-list">
+
+            <li class="home-item" style="--i:0">
+                <a class="home-link" href="/domain">
+                    <span class="home-num">01</span>
+                    <span class="home-name">Domain</span>
+                    <span class="home-desc">Search users and PCs, add accounts, run scripts.</span>
+                    <span class="home-arrow" aria-hidden="true"></span>
+                </a>
+            </li>
+
+            <li class="home-item" style="--i:1">
+                <a class="home-link" href="/domain_schema">
+                    <span class="home-num">02</span>
+                    <span class="home-name">Schema</span>
+                    <span class="home-desc">Browse organizational units under each root.</span>
+                    <span class="home-arrow" aria-hidden="true"></span>
+                </a>
+            </li>
+
+            <li class="home-item" style="--i:2">
+                <a class="home-link" href="/switches">
+                    <span class="home-num">03</span>
+                    <span class="home-name">Switches</span>
+                    <span class="home-desc">Connect to a device, look up a MAC address, run scripts.</span>
+                    <span class="home-arrow" aria-hidden="true"></span>
+                </a>
+            </li>
+
+            <li class="home-item" style="--i:3">
+                <a class="home-link" href="/switch_inventory">
+                    <span class="home-num">04</span>
+                    <span class="home-name">Inventory</span>
+                    <span class="home-desc">Root points, groups and hosts.</span>
+                    <span class="home-arrow" aria-hidden="true"></span>
+                </a>
+            </li>
+
+            <li class="home-item" style="--i:4">
+                <a class="home-link" href="/credentials">
+                    <span class="home-num">05</span>
+                    <span class="home-name">Credentials</span>
+                    <span class="home-desc">Manage saved access credentials.</span>
+                    <span class="home-arrow" aria-hidden="true"></span>
+                </a>
+            </li>
+
+        </ul>
+
+    </nav>
+
+</div>
+
+{% endblock %}

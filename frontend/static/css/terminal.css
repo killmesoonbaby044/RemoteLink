@@ -1,54 +1,123 @@
-/* =========================
-   Terminal
-   ========================= */
+/* =========================================================
+   Terminal (new style)
+   Info bar on top, xterm below. Sizes of #terminal are unchanged
+   so the terminal script's fit/resize logic is unaffected.
+   ========================================================= */
+
+@keyframes terminal-rise {
+    from { opacity: 0; transform: translateY(14px); }
+    to   { opacity: 1; transform: none; }
+}
+
+.terminal-page {
+    animation: terminal-rise 500ms cubic-bezier(0.4, 0, 0.2, 1) backwards;
+}
+
+/* ---------- Info bar ---------- */
 
 .terminal-info {
+    position: relative;
     margin: 0;
-    padding: 12px 18px;
+    padding: 14px 22px;
 
     display: flex;
-    gap: 15px;
+    gap: 14px;
     align-items: center;
 
     background: var(--color-surface);
-    border: 1px solid var(--color-border);
+    border: 1px solid var(--color-border-strong);
     border-bottom: none;
-    border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+    border-radius: 0;
 
     font-size: 14px;
 }
 
-.terminal-info span {
+/* short blue accent line on the top-left edge */
+.terminal-info::before {
+    content: "";
+    position: absolute;
+    top: -1px;
+    left: -1px;
+    width: 72px;
+    height: 2px;
+    background: var(--color-accent);
+}
+
+.terminal-info > span:not(#status) {
     color: var(--color-text-muted);
+    font-size: 12px;
+    font-weight: 500;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
 }
 
 .terminal-info strong {
     color: var(--color-text);
     font-family: var(--font-mono);
+    font-size: 15px;
     font-weight: 600;
 }
 
+/* connection status: small round badge with a blue square marker */
 #status {
     margin-left: auto;
-    padding: 4px 10px;
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    padding: 7px 16px;
 
-    background: var(--color-surface-2);
+    background: var(--color-bg);
+    border: 1px solid var(--color-border-strong);
     border-radius: 999px;
 
     color: var(--color-text-secondary);
-    font-size: 12.5px;
+    font-size: 12px;
     font-weight: 500;
-    letter-spacing: 0.02em;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
 }
 
-#terminal {
-    min-height: 600px;
-    padding: 14px 16px;
+#status::before {
+    content: "";
+    width: 8px;
+    height: 8px;
+    flex-shrink: 0;
+    background: var(--color-accent);
+}
 
-    background: #0b0c0e;
-    border: 1px solid var(--color-border);
-    border-radius: 0 0 var(--radius-lg) var(--radius-lg);
+/* ---------- Terminal ----------
+   xterm's own .xterm-viewport (the black area) is stretched over the whole
+   .xterm element, so breathing room must be padding on .xterm itself, not
+   on the #terminal wrapper. (Padding on the wrapper only adds a band
+   OUTSIDE the black area and leaves the text touching its edge.)
+   xterm's fit logic subtracts the .xterm padding automatically.
+
+   --terminal-bg: set this to the same colour as the xterm theme background
+   in your terminal script so the whole box is one solid colour. */
+
+#terminal {
+    --terminal-bg: #0b0c0e;
+
+    min-height: 600px;
+    padding: 0;
+
+    background: var(--terminal-bg);
+    border: 1px solid var(--color-border-strong);
+    border-radius: 0;
     box-shadow: var(--shadow-md);
 
     overflow: auto;
+}
+
+#terminal .xterm {
+    padding: 20px 26px;
+    background: var(--terminal-bg);
+}
+
+#terminal .xterm-viewport {
+    background-color: var(--terminal-bg) !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .terminal-page { animation: none; }
 }

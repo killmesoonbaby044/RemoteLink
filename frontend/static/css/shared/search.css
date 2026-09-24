@@ -1,0 +1,122 @@
+/* =========================
+   Search status + results
+   Shared by Switches and Domain.
+   Results flow in dynamic rows sized by the full name (2+ per row when
+   there is room). Names are never truncated.
+   ========================= */
+
+.search-status {
+    margin: 12px 0 0;
+    color: var(--color-text-muted);
+    font-size: 13px;
+    letter-spacing: 0.02em;
+}
+
+/* Dynamic layout: each result is as wide as its full name (never cut off),
+   as many share a row as fit, and every row is stretched to the full width
+   so there are no empty cells. A name longer than the whole row wraps.
+   1px gaps over a line-coloured background draw the dividers. */
+.search-results {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1px;
+    margin-top: 12px;
+    max-height: 320px;
+    overflow-y: auto;
+
+    background: var(--color-border);
+    border: 1px solid var(--color-border);
+    border-radius: 0;
+}
+
+.search-results:empty { display: none; }
+
+.search-results .search-result-label {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex: 1 1 auto;
+    min-width: min(180px, 100%);
+    padding: 13px 16px;
+
+    background: var(--color-surface);
+    border: 0;
+    border-radius: 0;
+
+    color: var(--color-text-secondary);
+    font-family: var(--font-mono);
+    font-size: 14px;
+    cursor: pointer;
+
+    transition: background var(--transition-fast), color var(--transition-fast);
+}
+
+/* accent bar slides in on hover / selection */
+.search-results .search-result-label::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 2px;
+    background: var(--color-accent);
+    transform: scaleY(0);
+    transform-origin: top center;
+    transition: transform 300ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.search-results .search-result-label:hover {
+    background: var(--color-surface-hover);
+    color: var(--color-text);
+}
+
+.search-results .search-result-label:hover::before,
+.search-results .search-result-label:has(.search-result-radio:checked)::before,
+.search-results .search-result-label:focus-within::before {
+    transform: scaleY(1);
+}
+
+.search-results .search-result-label:has(.search-result-radio:checked) {
+    background: var(--color-surface-2);
+    color: var(--color-text);
+}
+
+/* name: shown in full; only wraps if it is longer than the entire row */
+.search-result-name {
+    flex: 1;
+    min-width: 0;
+    line-height: 1.35;
+    white-space: normal;
+    overflow-wrap: anywhere;
+}
+
+/* radio becomes the same square marker used across the UI */
+.search-result-radio {
+    appearance: none;
+    -webkit-appearance: none;
+    flex-shrink: 0;
+    width: 10px;
+    height: 10px;
+    margin: 0;
+    border: 1.5px solid var(--color-text-muted);
+    border-radius: 0;
+    background: transparent;
+    cursor: pointer;
+    transition: background var(--transition-base), border-color var(--transition-base), transform var(--transition-base);
+}
+
+.search-results .search-result-label:hover .search-result-radio { border-color: var(--color-accent); }
+
+.search-result-radio:checked {
+    background: var(--color-accent);
+    border-color: var(--color-accent);
+    transform: rotate(45deg);
+}
+
+.search-result-radio:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 3px; }
+
+@media (prefers-reduced-motion: reduce) {
+    .search-results .search-result-label::before,
+    .search-result-radio { transition: none; }
+}
