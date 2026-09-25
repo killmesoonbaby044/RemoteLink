@@ -20,65 +20,106 @@ Login
 
 <div class="login-container">
 
-    <section class="login-card">
+    <div class="login-stage">
 
-        <div class="login-icon">
-            <img src="/static/icons/favicon.ico" alt="RemoteLink" width="56" height="56">
-        </div>
+        <svg class="login-motif login-motif--left" viewBox="0 0 220 320" fill="none" aria-hidden="true" focusable="false">
+            <!-- Decorative only: a loose node/branch pattern, echoing the rest of the app. -->
+            <g stroke="var(--color-border-strong)" stroke-width="1.5">
+                <path d="M30 30 L30 120 L95 120 L95 175"/>
+                <path d="M30 120 L30 210"/>
+                <path d="M95 175 L95 245 L50 245 L50 295"/>
+                <path d="M95 175 L150 175 L150 230"/>
+            </g>
+            <g fill="var(--color-text-muted)">
+                <circle cx="30" cy="30" r="4"/>
+                <circle cx="30" cy="210" r="4"/>
+                <circle cx="50" cy="295" r="4"/>
+                <circle cx="150" cy="230" r="4"/>
+            </g>
+            <circle class="login-motif-accent" cx="95" cy="175" r="5"/>
+            <circle class="login-motif-accent" cx="30" cy="120" r="5"/>
+        </svg>
 
-        <h1>
-            Sign in
-        </h1>
+        <svg class="login-motif login-motif--right" viewBox="0 0 220 320" fill="none" aria-hidden="true" focusable="false">
+            <!-- A hub with a few connected points, echoing network devices. -->
+            <g stroke="var(--color-border-strong)" stroke-width="1.5">
+                <path d="M125 100 L180 55"/>
+                <path d="M125 100 L190 140"/>
+                <path d="M125 100 L160 220"/>
+                <path d="M125 100 L75 165"/>
+                <path d="M160 220 L160 280"/>
+            </g>
+            <g fill="var(--color-text-muted)">
+                <circle cx="180" cy="55" r="4"/>
+                <circle cx="190" cy="140" r="4"/>
+                <circle cx="75" cy="165" r="4"/>
+                <circle cx="160" cy="280" r="4"/>
+            </g>
+            <circle class="login-motif-accent" cx="125" cy="100" r="6"/>
+            <circle class="login-motif-accent" cx="160" cy="220" r="5"/>
+        </svg>
 
-        <p class="login-subtitle">
-            Enter your credentials to continue.
-        </p>
+        <section class="login-card">
 
-        <form id="login-form" class="login-form" novalidate>
-
-            <div class="form-field">
-
-                <label for="login-username">
-                    Username
-                </label>
-
-                <input
-                    type="text"
-                    id="login-username"
-                    name="username"
-                    autocomplete="username"
-                    placeholder="jdoe"
-                    required
-                >
-
+            <div class="login-icon">
+                <img src="/static/icons/favicon.ico" alt="RemoteLink" width="56" height="56">
             </div>
 
-            <div class="form-field">
-
-                <label for="login-password">
-                    Password
-                </label>
-
-                <input
-                    type="password"
-                    id="login-password"
-                    name="password"
-                    autocomplete="current-password"
-                    placeholder="••••••••"
-                    required
-                >
-
-            </div>
-
-            <button type="submit" id="login-submit">
+            <h1>
                 Sign in
-            </button>
+            </h1>
 
-            <p class="login-status" id="login-status" role="alert"></p>
+            <p class="login-subtitle">
+                Enter your credentials to continue.
+            </p>
 
-        </form>
+            <form id="login-form" class="login-form" novalidate>
 
-    </section>
+                <div class="form-field">
+
+                    <label for="login-username">
+                        Username
+                    </label>
+
+                    <input
+                        type="text"
+                        id="login-username"
+                        name="username"
+                        autocomplete="username"
+                        placeholder="jdoe"
+                        required
+                    >
+
+                </div>
+
+                <div class="form-field">
+
+                    <label for="login-password">
+                        Password
+                    </label>
+
+                    <input
+                        type="password"
+                        id="login-password"
+                        name="password"
+                        autocomplete="current-password"
+                        placeholder="••••••••"
+                        required
+                    >
+
+                </div>
+
+                <button type="submit" id="login-submit">
+                    Sign in
+                </button>
+
+                <p class="login-status" id="login-status" role="alert"></p>
+
+            </form>
+
+        </section>
+
+    </div>
 
 </div>
 

@@ -3,24 +3,25 @@
 // currently editing) and is the only place that wires up event
 // listeners, per the module-shape convention (see README.md).
 
-import { fetchOuSchema, submitUser } from "./api.js";
-import { getAddUserDom } from "./dom.js";
-import { getRecentOus, pushRecentOu } from "./ou-history.js";
-import { initUpload } from "./upload.js";
+import {fetchOuSchema, submitUser} from "./api.js";
+import {getAddUserDom} from "./dom.js";
+import {getRecentOus, pushRecentOu} from "./ou-history.js";
+import {initUpload} from "./upload.js";
 import {
-    createRow,
-    removeRow,
     clearRow,
-    isRowEmpty,
+    createRow,
     fillRowFromUpload,
     getRowFields,
-    setRowOu,
-    setRowStatus,
+    isRowEmpty,
+    markRowAdded,
     readRow,
-    renderRootList,
+    removeRow,
     renderGlobalOuSearch,
     renderOuList,
     renderRecentOus,
+    renderRootList,
+    setRowOu,
+    setRowStatus,
 } from "./render.js";
 
 const dom = getAddUserDom();
@@ -221,11 +222,21 @@ if (dom) {
     async function handleSubmit() {
         const rows = Array.from(dom.rowsContainer.querySelectorAll("[data-row]"));
         const entries = rows.map(readRow);
-        const usable = entries.filter((e) => e.full_name || e.username || e.org_unit_dn);
+        const withData = entries.filter((e) => e.full_name || e.username || e.org_unit_dn);
+
+        if (!withData.length) {
+            dom.summary.hidden = false;
+            dom.summary.textContent = "Fill in at least one row before submitting.";
+            return;
+        }
+
+        // Rows that already succeeded on a previous click must not be
+        // sent to the API again - only resubmit new/failed rows.
+        const usable = withData.filter((e) => e.row.dataset.userAdded !== "true");
 
         if (!usable.length) {
             dom.summary.hidden = false;
-            dom.summary.textContent = "Fill in at least one row before submitting.";
+            dom.summary.textContent = "All users already added.";
             return;
         }
 
@@ -247,6 +258,7 @@ if (dom) {
             try {
                 await submitUser(dom.submitEndpoint, entry);
                 setRowStatus(entry.row, "Added.", "success");
+                markRowAdded(entry.row);
                 ok += 1;
             } catch (err) {
                 setRowStatus(entry.row, err.message || "Failed to add user.", "error");

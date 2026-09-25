@@ -43,13 +43,13 @@ instead.
 
 ## Module shape
 
-Every feature folder (`switch/lookup`, `switch/inventory`, `domain/search`, `domain/schema`,
+Every feature folder (`switch/lookup`, `switch/inventory`, `domain/search`, `domain/inventory`,
 `domain/add-user`, `shared/terminal`) follows the same shape, first established in
 `switch/lookup` — see its own `README_SWITCH.md` for the original write-up:
 
 - **`config.js`** *(if the feature has real config)* — static constants: endpoint names,
   radio-group names, per-instance settings. Skip this file if there's nothing to put in it
-  (single-instance features like `domain/schema` don't have one).
+  (single-instance features like `domain/inventory` don't have one).
 - **`dom.js`** — every `getElementById`/`querySelector` for this feature, in one place.
   Returns `null` (not throws) when the feature's elements aren't on the current page, so
   the entry file can bail out cleanly.
@@ -85,7 +85,7 @@ with things that aren't quite pure DOM-building or fetching:
 | `pages/switches.html` | `switch/connect/main.js` + `switch/lookup/lookup.js` |
 | `pages/switch_inventory.html` | `switch/inventory/main.js` |
 | `pages/domain/domain.html` | `domain/search/main.js` |
-| `pages/domain/domain_schema.html` | `domain/schema/main.js` |
+| `pages/domain/domain_schema.html` | `domain/inventory/main.js` |
 | `pages/domain/domain_add_user.html` | `domain/add-user/main.js` |
 | `pages/terminal.html` | `shared/terminal/main.js` |
 | `pages/credentials.html` | `shared/credentials/page.js` |

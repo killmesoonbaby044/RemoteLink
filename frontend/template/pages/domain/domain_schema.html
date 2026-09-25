@@ -7,7 +7,7 @@
 {% endblock %}
 
 {% block content %}
-<div class="schema-page" data-endpoint="/domain/inventory">
+<div class="schema-page" data-endpoint="/domain/inventory/data">
 
     <div class="schema-head">
         <div>
@@ -44,12 +44,12 @@
     <div id="schema-banner" class="schema-banner" hidden role="alert"></div>
 
     <div id="schema-groups" class="schema-groups" aria-live="polite">
-        <!-- populated by domain/schema/main.js -->
+        <!-- populated by domain/inventory/main.js -->
     </div>
 
 </div>
 {% endblock %}
 
 {% block scripts %}
-<script type="module" src="/static/js/domain/schema/main.js"></script>
+<script type="module" src="/static/js/domain/inventory/main.js"></script>
 {% endblock %}

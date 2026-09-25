@@ -1,7 +1,7 @@
 /**
  * Network layer for the "Add user" page.
  *
- * Three requests: reuse the same schema shape as domain/schema
+ * Three requests: reuse the same schema shape as domain/inventory
  * ({ [rootName]: [{ Name, DN }, ...] }) to populate the OU picker, a
  * JSON POST per user record (the endpoint takes one record at a time,
  * not a batch - see main.js for how multiple rows are handled), and a

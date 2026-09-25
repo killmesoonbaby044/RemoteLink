@@ -2,11 +2,21 @@
    RemoteLink — login page (new style)
    ========================================================= */
 
+/* Card + motifs live together in one bounded, centered "stage" so the
+   decorations stay close to the card and keep the same relative spacing
+   on a laptop or an ultrawide monitor, instead of drifting to the real
+   screen edges. */
 .login-container {
     display: flex;
     justify-content: center;
     align-items: flex-start;
     padding-top: clamp(24px, 10vh, 110px);
+}
+
+.login-stage {
+    position: relative;
+    width: 100%;
+    max-width: 900px;
 }
 
 @keyframes login-rise {
@@ -19,10 +29,47 @@
     to   { width: 72px; }
 }
 
+/* ---------- Decorative motifs ----------
+   Two node/branch patterns flanking the card, echoing the same shapes
+   used on the inventory hub. Pure decoration: aria-hidden, no pointer
+   events, sit behind the card (z-index: 0), and hidden once the window
+   is too narrow for them to have room beside the card. */
+.login-motif {
+    position: absolute;
+    top: 50%;
+    width: clamp(140px, 15vw, 220px);
+    height: auto;
+    opacity: 0.5;
+    pointer-events: none;
+    transform: translateY(-50%);
+    z-index: 0;
+}
+
+.login-motif--left  { left: 0; }
+.login-motif--right { right: 0; }
+
+.login-motif-accent {
+    fill: var(--color-accent);
+    animation: login-motif-pulse 3400ms ease-in-out infinite;
+}
+
+.login-motif--right .login-motif-accent { animation-delay: 1200ms; }
+
+@keyframes login-motif-pulse {
+    0%, 100% { opacity: 1; }
+    50%      { opacity: 0.45; }
+}
+
+@media (max-width: 900px) {
+    .login-motif { display: none; }
+}
+
 .login-card {
     position: relative;
+    z-index: 1;
     width: 100%;
     max-width: 440px;
+    margin: 0 auto;
     padding: 44px 40px 40px;
 
     background: var(--color-surface);
@@ -186,5 +233,5 @@
 .login-status.is-success { color: #4bc27a; }
 
 @media (prefers-reduced-motion: reduce) {
-    .login-card, .login-card::before { animation: none; }
+    .login-card, .login-card::before, .login-motif-accent { animation: none; }
 }

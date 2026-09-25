@@ -8,7 +8,7 @@ from app.config import token_name, templates
 from app.core.schemas import Login
 from app.settings import get_config
 
-router = APIRouter()
+router = APIRouter(tags=["AUTH"])
 
 
 @router.get("/login", response_class=HTMLResponse)

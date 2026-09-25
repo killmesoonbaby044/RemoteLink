@@ -2,7 +2,7 @@
 // writes. main.js owns the `schema` state and decides when to call
 // these; it also owns which row is "active" for the OU modal.
 
-import {escapeHtml} from "../schema/render.js";
+import {escapeHtml} from "../inventory/render.js";
 
 let rowCounter = 0;
 
@@ -46,12 +46,21 @@ export function clearRow(row) {
     usernameInput.value = "";
     delete row.dataset.ouDn;
     delete row.dataset.ouName;
+    delete row.dataset.userAdded;
     ouChosen.hidden = true;
     ouChosen.textContent = "";
     ouBtn.textContent = "Choose OU";
     ouHint.hidden = true;
     ouHint.textContent = "";
     setRowStatus(row, "");
+}
+
+// Marks a row as having been successfully submitted. This is permanent
+// for the life of the row (fire-and-forget): once added, no later edit
+// to the row's fields makes it eligible to be sent again - only
+// explicitly clearing/removing the row (clearRow, above) resets it.
+export function markRowAdded(row) {
+    row.dataset.userAdded = "true";
 }
 
 export function isRowEmpty(row) {
@@ -106,7 +115,7 @@ function ouMatchesFilter(entry, query) {
     return name.includes(query) || dn.includes(query);
 }
 
-// `schema` is the same shape domain/schema renders:
+// `schema\inventory` is the same shape domain/inventory renders:
 // { [rootName]: [{ Name, DN }, ...] }. The modal is two views over it:
 // a root-key list first, then (once one is picked) that root's OU
 // entries - see renderRootList / renderOuList below. Search behaves

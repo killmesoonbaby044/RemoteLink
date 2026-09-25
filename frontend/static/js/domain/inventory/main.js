@@ -3,9 +3,9 @@
 // switch/inventory: api/dom/render here, this file just holds the
 // `schema` state and wires everything together.
 
-import { fetchSchema, syncSchema as syncSchemaRequest } from "./api.js";
-import { getSchemaDom } from "./dom.js";
-import { renderSkeleton, renderGroups, showBanner, hideBanner } from "./render.js";
+import {fetchSchema, syncSchema as syncSchemaRequest} from "./api.js";
+import {getSchemaDom} from "./dom.js";
+import {hideBanner, renderGroups, renderSkeleton, showBanner} from "./render.js";
 
 const dom = getSchemaDom();
 
@@ -23,7 +23,7 @@ if (dom) {
             schema = null;
             dom.groups.innerHTML = "";
             showBanner(dom, "Couldn't load the domain schema. Check your connection and try again.", loadSchema);
-            console.error("domain/schema: failed to load schema", err);
+            console.error("domain/inventory/data: failed to load schema", err);
         }
     }
 
@@ -38,7 +38,7 @@ if (dom) {
             await loadSchema();
         } catch (err) {
             showBanner(dom, "Couldn't sync the domain schema. Check your connection and try again.", handleSync);
-            console.error("domain/schema: failed to sync schema", err);
+            console.error("domain/inventory/data: failed to sync schema", err);
         } finally {
             dom.syncBtn.disabled = false;
             dom.syncBtn.classList.remove("is-syncing");
@@ -61,7 +61,7 @@ if (dom) {
                 btn.classList.remove("is-copied");
             }, 1200);
         } catch (err) {
-            console.error("domain/schema: clipboard copy failed", err);
+            console.error("domain/inventory/data: clipboard copy failed", err);
         }
     });
 

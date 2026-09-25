@@ -11,13 +11,15 @@ from __future__ import annotations
 from fastapi import APIRouter, Depends
 
 from app.core.auth.auth_manager import validate_user
-from app.services.switch.schemas import Group, Host, RootPoint
 from app.services.switch.inventory.switch_inventory_service import (
     switch_inventory_service,
 )
+from app.services.switch.schemas import Group, Host, RootPoint
 
 router = APIRouter(
-    prefix="/inventory", tags=["inventory"], dependencies=[Depends(validate_user)]
+    prefix="/switch/inventory",
+    tags=["Switch Inventory"],
+    dependencies=[Depends(validate_user)],
 )
 
 

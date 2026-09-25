@@ -1,6 +1,6 @@
 from typing import Annotated
 
-from fastapi import APIRouter, HTTPException, Query, Depends, UploadFile, File
+from fastapi import HTTPException, Query, UploadFile, File, APIRouter, Depends
 from loguru import logger
 
 from app.core.auth.auth_manager import validate_user
@@ -10,7 +10,11 @@ from app.services.domain.doc_parsing import parse_document
 from app.services.domain.schema import ScriptQueryParams, ScriptAddUser
 from app.services.domain.sync_AD_schema import ad_schema_search
 
-router = APIRouter(prefix="/domain", dependencies=[Depends(validate_user)])
+router = APIRouter(
+    prefix="/domain",
+    tags=["Domain Scripts"],
+    dependencies=[Depends(validate_user)],
+)
 
 
 @router.post("/scripts")
@@ -39,12 +43,12 @@ async def upload(file: UploadFile = File(...)):
     return parse_document(file.file)
 
 
-@router.get("/inventory")
+@router.get("/inventory/data")
 async def get_domain() -> dict:
     return await domain_store.get()
 
 
-@router.post("/inventory")
+@router.post("/inventory/data")
 async def sync_domain() -> dict:
     schema = await ad_schema_search()
 

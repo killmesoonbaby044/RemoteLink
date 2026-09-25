@@ -4,7 +4,11 @@ from app.core.auth.auth_manager import validate_user
 from app.services.switch.schemas import MacLookupRequest, MacLookupResponse
 from app.services.switch.switch_runtime import run_lookup
 
-router = APIRouter(dependencies=[Depends(validate_user)])
+router = APIRouter(
+    prefix="/switch",
+    tags=["Switch Tasks"],
+    dependencies=[Depends(validate_user)],
+)
 
 
 @router.post("/tasks/mac-lookup", response_model=MacLookupResponse)
