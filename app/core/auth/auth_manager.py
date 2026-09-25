@@ -1,9 +1,9 @@
 from typing import Optional
 
 from fastapi import HTTPException
+from jose import jwt, JWTError
 from loguru import logger
 from starlette.requests import Request
-from jose import jwt, JWTError
 from starlette.websockets import WebSocket
 
 from app.config import AccessToken, token_name
@@ -76,5 +76,5 @@ async def authenticate_websocket(websocket: WebSocket) -> AccessToken | None:
         logger.warning("Token not valid for this user")
         await websocket.close(code=4403)
         return None
-
-    return AccessToken(**payload)
+    return
+    # return AccessToken(**payload)

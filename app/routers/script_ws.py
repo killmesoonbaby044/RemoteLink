@@ -13,9 +13,10 @@ from fastapi.params import Query
 from loguru import logger
 from starlette.websockets import WebSocketDisconnect
 
+from app.core.auth.auth_manager import authenticate_websocket
+from app.services.domain.exceptions import InvalidScriptError
 from app.services.domain.schema import ScriptQueryParams
 from app.services.sessions.process_session import ProcessSession
-from app.services.domain.exceptions import InvalidScriptError
 
 router = APIRouter()
 
@@ -26,9 +27,7 @@ async def script_terminal(
     request_params: Annotated[ScriptQueryParams, Query()],
 ) -> None:
     await websocket.accept()
-    # token = await authenticate_websocket(websocket)
-    # if token is None:
-    #     return
+    await authenticate_websocket(websocket)
 
     session: ProcessSession | None = None
 

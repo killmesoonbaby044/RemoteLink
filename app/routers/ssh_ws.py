@@ -22,9 +22,7 @@ async def ssh_terminal(
     request_params: Annotated[SSHScriptQueryParams, Query()],
 ) -> None:
     await websocket.accept()
-    token = await authenticate_websocket(websocket)
-    if token is None:
-        return
+    await authenticate_websocket(websocket)
 
     session: SSHSession | None = None
 
