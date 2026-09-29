@@ -12,6 +12,7 @@ export const SEARCH_KINDS = {
         resultsId: "user-search-results",
         scriptsSectionId: "user-scripts-section",
         scriptsTargetId: "user-scripts-target",
+        lockedButtonId: "user-locked-search",
     },
     pc: {
         kind: "pc",

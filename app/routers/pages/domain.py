@@ -24,8 +24,10 @@ async def domain_search(request: Request):
         context={
             "pc_scripts": list_scoped_scripts("pc"),
             "user_scripts": list_scoped_scripts("user"),
+            "search_folder": "root",
             "pc_search_script": "search_pcs",
             "user_search_script": "search_users",
+            "user_locked_script": "search_locked_users",
         },
     )
 

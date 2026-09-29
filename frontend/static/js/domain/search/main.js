@@ -51,12 +51,19 @@ function initSearchBlock(config) {
         pushHistory({ type: "script", folder: config.kind, script: scriptName, args: targetName });
     });
 
-    function runSearch(query) {
+    function runSearch(query, { script, recordHistory = true } = {}) {
         dom.results.innerHTML = "";
         dom.status.textContent = "Searching...";
-        pushSearch(config.kind, query);
 
-        searchEntities(dom.form, query)
+        // The locked-users shortcut has no typed query, so it's kept out
+        // of search_history:<kind> (the autosuggest store) the same way
+        // ou-history.js is kept out of shared/history - it's a different
+        // kind of "recent", not a name someone typed.
+        if (recordHistory) {
+            pushSearch(config.kind, query);
+        }
+
+        searchEntities(dom.form, query, { script })
             .then((names) => {
                 renderResults({ config, dom }, names, {
                     onSelect: (name) => {
@@ -85,6 +92,20 @@ function initSearchBlock(config) {
         }
 
         runSearch(query);
+    });
+
+    // Optional per-kind shortcut (see config.js/dom.js) - same
+    // search -> pick one -> run script flow as a name search, just
+    // skips typing a query and hits data-locked-script instead of
+    // data-search-script.
+    dom.lockedButton?.addEventListener("click", () => {
+        const lockedScript = dom.form.dataset.lockedScript;
+        if (!lockedScript) {
+            return;
+        }
+
+        dom.input.value = "";
+        runSearch("", { script: lockedScript, recordHistory: false });
     });
 }
 

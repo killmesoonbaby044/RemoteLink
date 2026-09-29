@@ -15,6 +15,7 @@ export function getAddUserDom() {
     const addRowBtn = document.getElementById("add-user-add-row");
     const uploadBtn = document.getElementById("add-user-upload");
     const uploadInput = document.getElementById("add-user-upload-input");
+    const downloadBtn = document.getElementById("add-user-download");
     const submitBtn = document.getElementById("add-user-submit");
     const summary = document.getElementById("add-user-summary");
 
@@ -30,7 +31,8 @@ export function getAddUserDom() {
 
     if (!rowsContainer || !rowTemplate || !addRowBtn || !submitBtn || !modalOverlay
         || !modalBack || !modalTitle || !modalClose || !modalFilter || !modalStatus
-        || !modalGroups || !modalRecentBlock || !modalRecentList || !uploadInput) {
+        || !modalGroups || !modalRecentBlock || !modalRecentList || !uploadInput
+        || !downloadBtn) {
         return null;
     }
 
@@ -43,6 +45,7 @@ export function getAddUserDom() {
         addRowBtn,
         uploadBtn,
         uploadInput,
+        downloadBtn,
         submitBtn,
         summary,
         modalOverlay,

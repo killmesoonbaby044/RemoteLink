@@ -6,6 +6,7 @@
 import {fetchSchema, syncSchema as syncSchemaRequest} from "./api.js";
 import {getSchemaDom} from "./dom.js";
 import {hideBanner, renderGroups, renderSkeleton, showBanner} from "./render.js";
+import {resetUsersState, retryUsers, toggleUsers} from "./users.js";
 
 const dom = getSchemaDom();
 
@@ -18,6 +19,7 @@ if (dom) {
 
         try {
             schema = await fetchSchema(dom.endpoint);
+            resetUsersState();
             renderGroups(dom, schema);
         } catch (err) {
             schema = null;
@@ -47,28 +49,25 @@ if (dom) {
     }
 
     dom.groups.addEventListener("click", async (event) => {
-        const btn = event.target.closest(".schema-row-copy");
-        if (!btn) return;
+        const usersBtn = event.target.closest(".schema-row-users");
+        if (usersBtn) {
+            await toggleUsers(usersBtn);
+            return;
+        }
 
-        const dn = btn.dataset.copy;
-        try {
-            await navigator.clipboard.writeText(dn);
-            const original = btn.textContent;
-            btn.textContent = "Copied";
-            btn.classList.add("is-copied");
-            setTimeout(() => {
-                btn.textContent = original;
-                btn.classList.remove("is-copied");
-            }, 1200);
-        } catch (err) {
-            console.error("domain/inventory/data: clipboard copy failed", err);
+        const retryBtn = event.target.closest(".schema-users-retry");
+        if (retryBtn) {
+            await retryUsers(retryBtn);
         }
     });
 
     let filterTimer = null;
     dom.filterInput.addEventListener("input", () => {
         clearTimeout(filterTimer);
-        filterTimer = setTimeout(() => renderGroups(dom, schema), 100);
+        filterTimer = setTimeout(() => {
+            resetUsersState();
+            renderGroups(dom, schema);
+        }, 100);
     });
 
     dom.syncBtn.addEventListener("click", handleSync);

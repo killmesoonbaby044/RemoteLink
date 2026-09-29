@@ -30,13 +30,13 @@
 }
 
 /* Two cards side by side ("Search users" + "Search PC").
-   minmax(0, 1fr) keeps both exactly equal in width; align-items: stretch
-   keeps them exactly equal in HEIGHT too, so the cards never look uneven
-   when one of them shows a status line or a list of results. */
+   minmax(0, 1fr) keeps both exactly equal in width. align-items: start
+   lets each card size to its OWN content only -- a results list (or the
+   reserved status line below) growing one card never resizes the other. */
 .connect-row {
     display: grid;
     grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-    align-items: stretch;
+    align-items: start;
     gap: 24px;
     margin-bottom: 40px;
 }

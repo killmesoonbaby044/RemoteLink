@@ -30,5 +30,10 @@ export function getSearchDom(config) {
             : [],
         wrapper: document.getElementById(`${config.inputId}-wrapper`),
         menu: document.getElementById(`${config.inputId}-menu`),
+        // Only configs that set lockedButtonId (see config.js) get one;
+        // others get null, same convention as scriptsSection above.
+        lockedButton: config.lockedButtonId
+            ? document.getElementById(config.lockedButtonId)
+            : null,
     };
 }

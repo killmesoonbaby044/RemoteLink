@@ -7,6 +7,7 @@ import {fetchOuSchema, submitUser} from "./api.js";
 import {getAddUserDom} from "./dom.js";
 import {getRecentOus, pushRecentOu} from "./ou-history.js";
 import {initUpload} from "./upload.js";
+import {initDownload} from "./download.js";
 import {
     clearRow,
     createRow,
@@ -214,6 +215,8 @@ if (dom) {
         { isRowEmpty, fillRowFromUpload },
     );
 
+    const download = initDownload(dom);
+
     // ---- Submit ----
     // The endpoint takes one user record at a time, so multiple rows
     // are submitted as one sequential POST per row (not a batch
@@ -256,11 +259,30 @@ if (dom) {
             setRowStatus(entry.row, "Adding…", null);
 
             try {
-                await submitUser(dom.submitEndpoint, entry);
-                setRowStatus(entry.row, "Added.", "success");
-                markRowAdded(entry.row);
-                ok += 1;
+                const body = await submitUser(dom.submitEndpoint, entry);
+                // The API always returns 200 once the script starts running -
+                // whether the user was actually created is in result[0].success,
+                // not the HTTP status. A malformed/empty body is treated as a
+                // failure below rather than thrown, since it's not a network error.
+                const record = body && Array.isArray(body.result) ? body.result[0] : null;
+
+                if (record && record.success) {
+                    setRowStatus(entry.row, `Added. Password: ${record.password}`, "success");
+                    markRowAdded(entry.row);
+                    download.addSuccessfulUser({
+                        username: record.username,
+                        password: record.password,
+                        ouName: entry.row.dataset.ouName,
+                    });
+                    ok += 1;
+                } else {
+                    setRowStatus(entry.row, (record && record.error) || "Failed to add user.", "error");
+                    failed += 1;
+                }
             } catch (err) {
+                // Only reaches here for connection/HTTP-level failures (submitUser
+                // throws on !response.ok or on a network error) - a 200 with
+                // success: false is handled above, not here.
                 setRowStatus(entry.row, err.message || "Failed to add user.", "error");
                 failed += 1;
                 console.error("domain/add-user: failed to add user", err);

@@ -25,6 +25,26 @@ export async function fetchSchema(endpoint) {
     return data;
 }
 
+export async function fetchUsersForDn(endpoint, dn) {
+    const url = `${endpoint}?dn=${encodeURIComponent(dn)}`;
+    const response = await fetch(url, {
+        headers: { Accept: "application/json" },
+    });
+
+    if (!response.ok) {
+        throw new Error(`Request failed (${response.status})`);
+    }
+
+    const data = await response.json();
+
+    if (!data || typeof data !== "object" || !Array.isArray(data.users)) {
+        throw new Error("Unexpected response shape");
+    }
+
+    // [{ username, full_name }, ...]
+    return data.users;
+}
+
 export async function syncSchema(endpoint) {
     const response = await fetch(endpoint, {
         method: "POST",

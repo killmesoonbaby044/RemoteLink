@@ -2,7 +2,7 @@
    RemoteLink — design tokens
    ========================================================= */
 
-@import "sidebar.css";
+@import "common/sidebar.css";
 
 :root {
     /* Surfaces */

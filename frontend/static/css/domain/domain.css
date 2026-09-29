@@ -9,5 +9,14 @@
     font-family: var(--font-mono);
     font-weight: 600;
 }
+.app-form .input-row button.secondary-action {
+    background: transparent;
+    color: var(--color-accent);
+}
+.app-form .input-row button.secondary-action:hover {
+    background: var(--color-surface-2);
+    border-color: var(--color-accent-hover);
+    color: var(--color-accent-hover);
+}
 
 /* Search results here are styled by shared/search.css; nothing else needed. */

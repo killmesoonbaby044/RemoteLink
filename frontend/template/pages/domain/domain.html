@@ -37,24 +37,21 @@ Search
 
 
             <form id="user-search-form" class="app-form"
-                  data-search-folder="{{ user_search_folder | default('root') }}"
-                  data-search-script="{{ user_search_script | default('search_user') }}">
-                <label for="user-search-query">
+                  data-search-folder="{{ search_folder }}"
+                  data-search-script="{{ user_search_script }}"
+                  data-locked-script="{{ user_locked_script }}">
+                <label>
                     Username
                 </label>
-
                 <div class="input-row">
-
                     {{ autosuggest_input("user-search-query", "query", "Dragon") }}
-
-                    <button type="submit">
-                        Search
+                    <button type="submit">Search</button>
+                    <button type="button" id="user-locked-search" class="secondary-action"
+                            aria-label="Show currently locked-out users">
+                        Locked users
                     </button>
-
                 </div>
-
             </form>
-
 
             <p class="search-status" id="user-search-status"></p>
 
@@ -75,10 +72,10 @@ Search
 
 
             <form id="pc-search-form" class="app-form"
-                  data-search-folder="{{ pc_search_folder | default('root') }}"
-                  data-search-script="{{ pc_search_script | default('search_pc') }}">
+                  data-search-folder="{{ search_folder }}"
+                  data-search-script="{{ pc_search_script }}">
 
-                <label for="pc-search-query">
+                <label>
                     PC name
                 </label>
 

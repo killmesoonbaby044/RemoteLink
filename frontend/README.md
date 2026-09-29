@@ -48,8 +48,7 @@ Every feature folder (`switch/lookup`, `switch/inventory`, `domain/search`, `dom
 `switch/lookup` — see its own `README_SWITCH.md` for the original write-up:
 
 - **`config.js`** *(if the feature has real config)* — static constants: endpoint names,
-  radio-group names, per-instance settings. Skip this file if there's nothing to put in it
-  (single-instance features like `domain/inventory` don't have one).
+  radio-group names, per-instance settings. Skip this file if there's nothing to put in it.
 - **`dom.js`** — every `getElementById`/`querySelector` for this feature, in one place.
   Returns `null` (not throws) when the feature's elements aren't on the current page, so
   the entry file can bail out cleanly.
@@ -77,6 +76,22 @@ with things that aren't quite pure DOM-building or fetching:
   `main.js` back.
 - **`ou-history.js`** — see "History convention" below; this is a second, deliberately
   separate history module, not a replacement for `shared/history/store.js`.
+
+`domain/inventory` follows the same "outgrow the five files without breaking the shape"
+pattern for its own reason:
+
+- **`users.js`** — the schema page's per-row "Users" subtable (fetch the users under an
+  OU's DN on first expand, cache the result on the row's own DOM node, collapse whichever
+  other row's subtable was open before opening a new one) has open/loaded state scoped to
+  a specific row, which doesn't fit `render.js`'s "pure, no side effects" rule. Wired from
+  `main.js` like everything else — `main.js` owns the click delegation on `#schema-groups`
+  and calls into `users.js`'s `toggleUsers()` / `retryUsers()` / `resetUsersState()`
+  (the last one so a filter re-render or schema reload can't leave `users.js` holding a
+  reference to a DOM node that `render.js` just threw away).
+
+This also gave `domain/inventory` a real `config.js` (the users-lookup endpoint,
+`/domain/script/get_users` — separate from `dom.endpoint`, which is the schema list
+endpoint and stays wired per-page via `.schema-page`'s `data-endpoint`).
 
 ## Page → entry file map
 

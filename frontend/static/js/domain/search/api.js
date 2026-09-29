@@ -4,11 +4,14 @@
 // or buildScriptHref() directly - one place knows how this feature
 // talks to the rest of the app.
 
-import { buildScriptHref } from "../../common/script-ref.js";
+import {buildScriptHref} from "../../common/script-ref.js";
 
-export async function searchEntities(form, query) {
+export async function searchEntities(form, query, { script } = {}) {
     const searchFolder = form.dataset.searchFolder;
-    const searchScript = form.dataset.searchScript;
+    // Defaults to the form's normal search script; the locked-users
+    // button passes its own (form's data-locked-script) instead so this
+    // stays the one place that talks to /domain/scripts.
+    const searchScript = script || form.dataset.searchScript;
 
     if (!searchFolder || !searchScript) {
         throw new Error("Search isn't configured (missing data-search-folder/data-search-script).");

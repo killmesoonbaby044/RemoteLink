@@ -73,10 +73,16 @@ export function renderGroups(dom, schema) {
             body = `
                 <div class="schema-rows">
                     ${visible.map((entry) => `
-                        <div class="schema-row" data-dn="${escapeHtml(entry.DN)}">
-                            <span class="schema-row-name">${escapeHtml(entry.Name)}</span>
-                            <span class="schema-row-dn" title="${escapeHtml(entry.DN)}">${escapeHtml(entry.DN)}</span>
-                            <button type="button" class="schema-row-copy" data-copy="${escapeHtml(entry.DN)}">Copy DN</button>
+                        <div class="schema-row-wrap">
+                            <div class="schema-row" data-dn="${escapeHtml(entry.DN)}">
+                                <span class="schema-row-name">${escapeHtml(entry.Name)}</span>
+                                <span class="schema-row-dn" title="${escapeHtml(entry.DN)}">${escapeHtml(entry.DN)}</span>
+                                <button type="button" class="schema-row-users" data-dn="${escapeHtml(entry.DN)}" aria-expanded="false">
+                                    <span class="schema-row-users-caret" aria-hidden="true">&#9656;</span>
+                                    Users
+                                </button>
+                            </div>
+                            <div class="schema-users" hidden></div>
                         </div>
                     `).join("")}
                 </div>
@@ -97,4 +103,59 @@ export function renderGroups(dom, schema) {
             </section>
         `;
     }).join("");
+}
+
+// Pure render of one row's `.schema-users` subtable content. `container`
+// is the `.schema-users` element itself (not replaced, just filled in) so
+// users.js can toggle its `hidden` attribute independently of whatever's
+// drawn inside it. Also stamps `container.dataset.status` so users.js can
+// tell "already loaded, don't refetch" apart from "errored, retry on
+// next open" without duplicating that bookkeeping itself.
+//
+// state: { status: "loading" } | { status: "error", message } | { status: "loaded", users }
+// users: [{ login, full_name }, ...]
+export function renderUsersState(container, state) {
+    if (state.status === "loading") {
+        container.dataset.status = "loading";
+        container.innerHTML = `<div class="schema-users-loading">Loading users…</div>`;
+        return;
+    }
+
+    if (state.status === "error") {
+        container.dataset.status = "error";
+        container.innerHTML = `
+            <div class="schema-users-error">
+                <span>${escapeHtml(state.message || "Couldn't load users.")}</span>
+                <button type="button" class="schema-users-retry">Try again</button>
+            </div>
+        `;
+        return;
+    }
+
+    container.dataset.status = "loaded";
+    const users = Array.isArray(state.users) ? state.users : [];
+
+    if (users.length === 0) {
+        container.innerHTML = `<div class="schema-users-empty">No users found under this OU.</div>`;
+        return;
+    }
+
+    container.innerHTML = `
+        <table class="schema-users-table">
+            <thead>
+                <tr>
+                    <th class="schema-users-col-login">Username</th>
+                    <th class="schema-users-col-name">Full name</th>
+                </tr>
+            </thead>
+            <tbody>
+                ${users.map((user) => `
+                    <tr>
+                        <td class="schema-users-col-login">${escapeHtml(user.username)}</td>
+                        <td class="schema-users-col-name">${escapeHtml(user.full_name)}</td>
+                    </tr>
+                `).join("")}
+            </tbody>
+        </table>
+    `;
 }
