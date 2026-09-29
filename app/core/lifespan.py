@@ -1,8 +1,8 @@
+import getpass
 import uuid
 from contextlib import asynccontextmanager
-import getpass
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI
 from loguru import logger
 
 from app.core.client.http import HttpClient
@@ -25,3 +25,4 @@ async def lifespan(app: FastAPI):
         logger.warning("app not registered")
     # raise HTTPException(status_code=500, detail="not registered")
     yield
+    await client.close()
