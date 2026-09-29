@@ -52,6 +52,11 @@
     transition: background var(--transition-fast), color var(--transition-fast);
 }
 
+/* render.js hides the non-selected rows with the [hidden] attribute once one
+   is checked. The display:flex above outranks the browser's built-in
+   [hidden] rule, so without this the rows stayed visible. */
+.search-results .search-result-label[hidden] { display: none; }
+
 /* accent bar slides in on hover / selection */
 .search-results .search-result-label::before {
     content: "";

@@ -434,6 +434,12 @@
     gap: 18px;
 }
 
+/* Children here (.ou-root-list / .ou-group-rows) have overflow:hidden, which
+   lets a flex item shrink below its content height. Without this, a long
+   list is squashed to fit the modal (clipping rows) instead of making
+   .ou-modal-groups scroll. */
+.ou-modal-groups > * { flex-shrink: 0; }
+
 /* ---- Root list (first view) and OU rows share one line-list look ---- */
 
 .ou-root-list,

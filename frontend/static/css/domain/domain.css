@@ -20,3 +20,36 @@
 }
 
 /* Search results here are styled by shared/search.css; nothing else needed. */
+
+/* ---------- Users results: two per row ----------
+   Same look as the shared list (1px gaps over the line colour draw the
+   dividers), but laid out as a 2-column grid. minmax(0, 1fr) + min-width: 0
+   let both columns shrink with the card, so a long name wraps inside its own
+   cell (the shared .search-result-name already wraps with
+   overflow-wrap: anywhere) and never pushes past the box. Cells in a row
+   stretch to the same height, so a wrapped name still keeps one row. */
+
+#user-search-results {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    overflow-x: hidden;
+}
+
+#user-search-results .search-result-label {
+    min-width: 0;
+}
+
+/* odd count: the last cell takes the full row, no empty line-coloured gap */
+#user-search-results .search-result-label:last-child:nth-child(odd) {
+    grid-column: 1 / -1;
+}
+
+/* Narrow window: two columns of a half-width card get too cramped, so fall
+   back to one per row instead of squeezing the text. */
+@media (max-width: 1000px) {
+    #user-search-results { grid-template-columns: minmax(0, 1fr); }
+}
+
+/* PC results keep the shared flowing layout; just make sure nothing can
+   ever spill out horizontally when the window is resized. */
+#pc-search-results { overflow-x: hidden; }
