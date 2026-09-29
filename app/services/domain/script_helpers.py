@@ -5,8 +5,8 @@ handled by ProcessSession (backend/services/process_session.py).
 
 from __future__ import annotations
 
-from pathlib import Path
 import shlex
+from pathlib import Path
 
 from app.config import SCRIPTS_DIR
 from app.services.domain.exceptions import InvalidScriptError
@@ -61,19 +61,45 @@ def _resolve_script_path(params: ScriptQueryParams) -> Path:
     return matches[0]
 
 
+# Characters cmd.exe treats as command-line syntax (chaining, redirection,
+# escaping, variable expansion), even when they sit inside an argv element
+# Python itself never asked cmd.exe to parse as one string. python3/bash/
+# powershell -File don't re-interpret their argv this way, so this check
+# only applies to the .bat/.cmd branch below.
+_CMD_METACHARS = set('&|<>^%"')
+
+
+def _validate_cmd_args(args: list[str]) -> None:
+    """Reject args that would let a caller inject a second command into
+    a .bat/.cmd invocation (see build_command's .bat/.cmd branch)."""
+    for arg in args:
+        found = _CMD_METACHARS & set(arg)
+        if found:
+            raise InvalidScriptError(
+                f"Argument '{arg}' contains characters not allowed "
+                f"for .bat/.cmd scripts: {sorted(found)}"
+            )
+
+
+def _resolve_args(params: ScriptQueryParams) -> list[str]:
+    """Normalize params.args (str or list[str]) into a list[str],
+    tokenizing a plain string the same way as before."""
+    if isinstance(params.args, str):
+        return shlex.split(params.args)
+
+    return list(params.args)
+
+
 def build_command(params: ScriptQueryParams) -> tuple[Path, list[str]]:
     """Pick an interpreter based on file extension. Falls back to
     executing the file directly, which needs a shebang + execute bit."""
-    path = _resolve_script_path(params)
+    path_file = _resolve_script_path(params)
 
-    suffix = path.suffix.lower()
+    suffix = path_file.suffix.lower()
 
-    if suffix in (".bat", ".cmd"):
-        command = ["cmd", "/c", str(path)]
-    elif suffix == ".py":
-        command = ["python3", str(path)]
-    elif suffix in (".sh", ".bash"):
-        command = ["bash", str(path)]
+    if suffix == ".cmd":
+        command = ["cmd", "/c", str(path_file)]
+
     elif suffix == ".ps1":
         command = [
             "powershell",
@@ -81,18 +107,23 @@ def build_command(params: ScriptQueryParams) -> tuple[Path, list[str]]:
             "-ExecutionPolicy",
             "Bypass",
             "-File",
-            str(path),
+            str(path_file),
         ]
     else:
-        command = [str(path)]
+        raise InvalidScriptError(f"Invalid script extension '{suffix}'")
+    # if suffix in (".bat", ".cmd"):
+    # command = ["cmd", "/c", str(path_file)]
+    # elif suffix == ".py":
+    #     command = ["python3", str(path_file)]
+    # elif suffix in (".sh", ".bash"):
+    #     command = ["bash", str(path_file)]
 
     if params.args:
-        if isinstance(params.args, str):
-            # A single string of args needs proper tokenizing, not appending
-            # as one giant argv element (which would pass it to the
-            # interpreter/script as a single mangled argument).
-            command.extend(shlex.split(params.args))
-        else:
-            command.extend(params.args)
+        resolved_args = _resolve_args(params)
 
-    return path, command
+        if suffix in (".bat", ".cmd"):
+            _validate_cmd_args(resolved_args)
+
+        command.extend(resolved_args)
+
+    return path_file, command

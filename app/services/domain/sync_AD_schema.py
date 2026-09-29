@@ -90,7 +90,7 @@ def apply_naming(group: list[dict]) -> list[dict]:
     return group
 
 
-async def ad_schema_search():
+async def ad_schema_search(params: ScriptQueryParams):
     """AD-schema-specific wrapper around the shared script runner.
 
     All the actual "run this script" plumbing (path resolution, command
@@ -98,9 +98,7 @@ async def ad_schema_search():
     This function only owns what's specific to this use case: which
     script to run, and how to turn its output into a dict / errors.
     """
-    result = await run_script(
-        ScriptQueryParams(folder="domain", script="get_schema"), timeout=TIMEOUT
-    )
+    result = await run_script(params=params, timeout=TIMEOUT)
 
     if result.timed_out:
         raise RuntimeError(f"Script timed out.\nstderr:\n{result.stderr}")

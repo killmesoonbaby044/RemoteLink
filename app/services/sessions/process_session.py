@@ -25,20 +25,23 @@ from __future__ import annotations
 
 import asyncio
 import re
+import subprocess
 import sys
 
 from fastapi import WebSocket
 
 from app.services.domain.schema import ScriptQueryParams
-from app.services.sessions.io_relay import relay
 from app.services.domain.script_helpers import build_command
+from app.services.sessions.io_relay import relay
 
 IS_WINDOWS = sys.platform == "win32"
 
 if IS_WINDOWS:
-    from winpty import PtyProcess  # pywinpty -- wraps ConPTY
+    # pywinpty -- wraps ConPTY
+    from winpty import PtyProcess  # type: ignore[import-not-found]
 else:
-    from ptyprocess import PtyProcess  # wraps pty.fork()
+    # wraps pty.fork()
+    from ptyprocess import PtyProcess  # type: ignore[import-not-found]
 
 # Matches the Terminal({ rows, cols }) xterm.js is created with in app.js,
 # so line-wrapping and cursor-addressed output line up correctly.
@@ -50,6 +53,7 @@ _SEARCH_RESULTS_LINE = re.compile(
 )
 
 
+# Web socket two-way communication [input\output]
 class ProcessSession:
     """Bridges a local script's PTY stdio with a browser WebSocket."""
 
@@ -60,7 +64,7 @@ class ProcessSession:
         self.pty: PtyProcess | None = None
 
     async def run(self) -> None:
-        path, command = build_command(self.params)
+        path_file, command = build_command(self.params)
         await self._send_status(f"Starting {self.params.script}...")
 
         loop = asyncio.get_running_loop()
@@ -69,7 +73,7 @@ class ProcessSession:
         self.pty = await loop.run_in_executor(
             None,
             lambda: PtyProcess.spawn(
-                command, cwd=str(path.parent.parent), dimensions=(_ROWS, _COLS)
+                command, cwd=str(path_file.parent.parent), dimensions=(_ROWS, _COLS)
             ),
         )
 
@@ -84,7 +88,28 @@ class ProcessSession:
 
         try:
             if self.pty.isalive():
-                self.pty.terminate(force=True)
+                if IS_WINDOWS:
+                    # PtyProcess.terminate() calls TerminateProcess on
+                    # only the PID we spawned (cmd.exe running the
+                    # .bat). Windows does not cascade-kill children when
+                    # a parent dies, so a powershell.exe the .bat
+                    # launched (e.g. Enter-PSSession) is orphaned and
+                    # keeps its WinRM connection (port 5985) open.
+                    # taskkill /T kills the whole process tree instead.
+                    loop = asyncio.get_running_loop()
+                    await loop.run_in_executor(
+                        None,
+                        lambda: subprocess.run(
+                            ["taskkill", "/T", "/F", "/PID", str(self.pty.pid)],
+                            capture_output=True,
+                        ),
+                    )
+                else:
+                    # POSIX: ptyprocess.terminate(force=True) sends the
+                    # signal to the child's own process group (it calls
+                    # setsid on spawn), so descendants die with it --
+                    # no tree-walk needed here.
+                    self.pty.terminate(force=True)
         except Exception:
             pass
 

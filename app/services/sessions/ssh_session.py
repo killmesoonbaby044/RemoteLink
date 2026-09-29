@@ -3,6 +3,8 @@ its stdio with a browser WebSocket (used by the /ws/ssh endpoint)."""
 
 from __future__ import annotations
 
+import asyncio
+
 import asyncssh
 from fastapi import WebSocket
 
@@ -28,12 +30,16 @@ class SSHSession:
         await relay(self._read_ssh_output(), self._read_browser_input())
 
     async def close(self) -> None:
-        if self.process:
-            self.process.stdin.close()
+        try:
+            if self.process:
+                self.process.stdin.close()
 
-        if self.conn:
-            self.conn.close()
-            await self.conn.wait_closed()
+            if self.conn:
+                self.conn.close()
+                await asyncio.wait_for(self.conn.wait_closed(), timeout=5)
+
+        except Exception:
+            pass
 
     async def _connect(self) -> None:
         await self._send_status(f"Connecting to {self.host}...")

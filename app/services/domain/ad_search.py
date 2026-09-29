@@ -12,26 +12,44 @@ came back empty, check logs / result.stderr from run_script directly.
 
 import json
 
+from loguru import logger
+
 from app.services.domain.schema import ScriptQueryParams
-from app.services.sessions.AD_script_session import run_script
+from app.services.sessions.AD_script_session import run_script, ScriptResult
 
 DEFAULT_TIMEOUT_SECONDS = 30
 
 
+_TRANSIENT_ERROR = "a local error has occurred"
+
+
+def _has_transient_error(items: list) -> bool:
+    for item in items:
+        error = item.get("error") if isinstance(item, dict) else None
+        if isinstance(error, str) and _TRANSIENT_ERROR in error.lower():
+            return True
+    return False
+
+
 async def run_search(
-    args: ScriptQueryParams,
+    script_params: ScriptQueryParams,
     timeout: float = DEFAULT_TIMEOUT_SECONDS,
-) -> list:
+) -> list | dict:
 
-    result = await run_script(args, timeout=timeout)
-    if result.timed_out or result.returncode != 0:
-        return []
+    for attempt in range(2):  # first run + one retry on the known transient AD error
+        result: ScriptResult = await run_script(script_params, timeout=timeout)
+        if result.timed_out or result.returncode != 0:
+            logger.warning(result)
+            return []
+        try:
+            data = json.loads(result.stdout)
+        except json.JSONDecodeError:
+            logger.warning(result)
+            return []
 
-    try:
-        data = json.loads(result.stdout)
-    except json.JSONDecodeError:
-        return []
-    # Defensive: the scripts always wrap output in @(...) so this should
-    # already be a list, but don't blow up if a script ever returns a
-    # single bare object instead.
-    return data if isinstance(data, list) else [data]
+        items = data if isinstance(data, list) else [data]
+
+        if attempt == 1 or not _has_transient_error(items):
+            return items
+
+    return []  # unreachable, satisfies linters

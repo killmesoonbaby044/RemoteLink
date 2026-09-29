@@ -37,22 +37,14 @@ Output (printed to stdout, and optionally saved with --json):
     }
 """
 
-import argparse
-import json
 import re
 import shutil
 import subprocess
-import sys
 import tempfile
 from pathlib import Path
 
+import docx
 from fastapi import HTTPException
-
-try:
-    import docx
-except ImportError:
-    sys.exit("python-docx is required: pip install python-docx --break-system-packages")
-
 
 # Row-number cell may be a bare digit ("1"), or a digit prefixed with a
 # common "number" marker: "№1", "№ 1", "#1", "No. 1" (case-insensitive).

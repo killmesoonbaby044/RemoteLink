@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Optional, Union
 
 from pydantic import BaseModel
 
@@ -6,7 +6,7 @@ from pydantic import BaseModel
 class ScriptQueryParams(BaseModel):
     folder: str
     script: str
-    args: Optional[str] = None
+    args: Optional[Union[str, list[str]]] = None
 
 
 class ScriptAddUser(BaseModel):

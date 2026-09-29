@@ -40,6 +40,7 @@ class ScriptResult:
         }
 
 
+# FIRE and FORGET SCRIPTS - return Json
 async def run_script(
     params: ScriptQueryParams,
     timeout: float = DEFAULT_TIMEOUT_SECONDS,
@@ -51,8 +52,7 @@ async def run_script(
     resolve to a real file inside SCRIPTS_DIR.
     """
 
-    path, command = build_command(params)
-
+    path_file, command = build_command(params)
     loop = asyncio.get_running_loop()
     timed_out = False
 
@@ -61,7 +61,7 @@ async def run_script(
             None,
             lambda: subprocess.run(
                 command,
-                cwd=str(path.parent),
+                cwd=str(path_file.parent),
                 capture_output=True,
                 text=True,
                 encoding="utf-8",
