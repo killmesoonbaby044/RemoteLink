@@ -1,6 +1,7 @@
-"""Pydantic models shared across the switch package (inventory,
-switch_runtime, switch_scripts) - kept here so those modules only
-depend on this one and never on each other."""
+"""Pydantic models shared across the switch package (inventory, the SSH
+runtime, and every task folder). Feature-specific models live next to
+their feature (mac_lookup/schemas.py, interface/schemas.py) and build on
+these."""
 
 from __future__ import annotations
 
@@ -45,19 +46,7 @@ class HostTaskResult(BaseModel):
     error: str = ""
 
 
-class MacEntry(BaseModel):
-    vlan: str
-    mac: str
-    type: str  # e.g. STATIC, DYNAMIC, SecureSticky, SecureConfigured
-    interface: str
-
-
-class MacLookupRequest(BaseModel):
-    group: list[str]  # a host name or a group name from the inventory
+class SwitchRequest(BaseModel):
+    host: str = Field(min_length=1)  # host name from the inventory
     username: str
     password: str
-    mac_suffix: str  # last few hex chars of the MAC you're hunting for
-
-
-class MacLookupResponse(BaseModel):
-    results: list[HostTaskResult]

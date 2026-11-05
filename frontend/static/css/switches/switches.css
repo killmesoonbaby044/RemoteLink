@@ -98,17 +98,23 @@
     border-radius: 0;
 }
 
+/* fixed layout: every column gets the same width, so the distance
+   between columns is the same whatever the content */
 .lookup-results-table {
     width: 100%;
     border-collapse: collapse;
+    table-layout: fixed;
     font-size: 14px;
 }
 
+/* values are centered under their header */
 .lookup-results-table th,
 .lookup-results-table td {
-    padding: 14px 20px;
-    text-align: left;
+    padding: 14px 12px;
+    text-align: center;
     white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .lookup-results-table thead th {
@@ -157,6 +163,39 @@
     text-decoration-color: var(--color-accent);
 }
 
+/* Source column: M = MAC address table, S = port-security table */
+.lookup-sources {
+    white-space: nowrap;
+}
+
+.lookup-source {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 22px;
+    height: 22px;
+    font-family: var(--font-mono);
+    font-size: 11.5px;
+    font-weight: 700;
+    cursor: default;
+}
+
+.lookup-source + .lookup-source {
+    margin-left: 4px;
+}
+
+.lookup-source--mac {
+    background: var(--color-accent-soft);
+    color: var(--color-accent-hover);
+    box-shadow: inset 0 0 0 1px rgba(59, 147, 240, 0.35);
+}
+
+.lookup-source--psec {
+    background: rgba(224, 168, 58, 0.16);
+    color: #f0bd5a;
+    box-shadow: inset 0 0 0 1px rgba(224, 168, 58, 0.4);
+}
+
 .lookup-empty {
     padding: 20px 0;
     color: var(--color-text-muted);
@@ -168,6 +207,30 @@
 .lookup-error {
     color: #f08383;
     font-size: 14px;
+}
+
+.lookup-failures {
+    margin-top: 24px;
+}
+
+.lookup-results-table-wrap + .lookup-failures {
+    padding-top: 20px;
+    border-top: 1px solid var(--color-border);
+}
+
+.lookup-failures-list {
+    margin: 10px 0 0;
+    padding: 0;
+    list-style: none;
+    display: grid;
+    gap: 6px;
+    font-size: 13px;
+    color: var(--color-text-muted);
+    overflow-wrap: anywhere;
+}
+
+.lookup-failures-host {
+    color: var(--color-text);
 }
 
 /* ---------- Manage inventory link ---------- */

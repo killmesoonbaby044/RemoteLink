@@ -15,12 +15,38 @@ router = APIRouter(
 
 
 @router.get("", response_class=HTMLResponse)
-async def switches(request: Request):
+async def network_hub(request: Request):
+    """Network hub: links to connect, MAC lookup and interface config."""
+
+    return templates.TemplateResponse(
+        request=request,
+        name="pages/switch/network_hub.html",
+    )
+
+
+@router.get("/connect", response_class=HTMLResponse)
+async def switch_connect(request: Request):
     """SSH sessions for unix and switch."""
 
     return templates.TemplateResponse(
         request=request,
-        name="pages/switch/switches.html",
+        name="pages/switch/switch_connect.html",
+    )
+
+
+@router.get("/lookup", response_class=HTMLResponse)
+async def switch_lookup(request: Request):
+    return templates.TemplateResponse(
+        request=request,
+        name="pages/switch/switch_lookup.html",
+    )
+
+
+@router.get("/interface", response_class=HTMLResponse)
+async def switch_interface(request: Request):
+    return templates.TemplateResponse(
+        request=request,
+        name="pages/switch/switch_interface.html",
     )
 
 

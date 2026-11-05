@@ -1,6 +1,7 @@
 /* =========================================================
-   Inventory hub — picks between Domain Inventory and Network
-   Inventory. No logic: two static links.
+   Hub pages — tile grids of static links. Used by the Inventory
+   hub (Domain / Network inventory) and the Network hub
+   (connect / MAC lookup / interface config). No logic.
    ========================================================= */
 
 .inv-hub {
@@ -218,8 +219,18 @@
     transform: translate(6px, -6px) rotate(45deg);
 }
 
+/* three-tile variant (Network hub) */
+.inv-hub-grid--3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+
+.inv-hub-grid--3 .inv-hub-name { font-size: clamp(32px, 3.4vw, 48px); }
+
+@media (max-width: 1100px) {
+    .inv-hub-grid--3 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
 @media (max-width: 860px) {
-    .inv-hub-grid { grid-template-columns: 1fr; }
+    .inv-hub-grid,
+    .inv-hub-grid--3 { grid-template-columns: 1fr; }
 }
 
 @media (max-width: 700px) {

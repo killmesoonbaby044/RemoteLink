@@ -1,16 +1,22 @@
-// Entry point for the "MAC address lookup" block (templates/switches.html).
+// Entry point for the "MAC address lookup" block (template/pages/switch/switch_lookup.html).
 // Wires together the target picker, the mac-suffix autosuggest, and the
 // results view -- the actual logic for each of those lives in its own
 // module in this folder.
 
-import { fetchRootPoints, fetchRootPointGroups } from "./inventory-adapter.js";
-import { createAutosuggest } from "../../common/autosuggest.js";
-import { getRecentSearches, pushSearch } from "../../shared/history/store.js";
-import { ACTION_ENDPOINTS, ROOT_POINT_RADIO_NAME, TARGET_RADIO_NAME, MAC_HISTORY_KIND } from "./config.js";
-import { createTargetPicker } from "./target-picker.js";
-import { renderResults, renderError } from "./results.js";
+import {fetchRootPointGroups, fetchRootPoints} from "./inventory-adapter.js";
+import {createAutosuggest} from "../../common/autosuggest.js";
+import {getRecentSearches, pushSearch} from "../../shared/history/store.js";
+import {
+    ACTION_ENDPOINTS,
+    MAC_HISTORY_KIND,
+    NO_MAC_ACTIONS,
+    ROOT_POINT_RADIO_NAME,
+    TARGET_RADIO_NAME
+} from "./config.js";
+import {createTargetPicker} from "./target-picker.js";
+import {renderError, renderResults} from "./results.js";
 import * as dom from "./dom.js";
-import { hasCredentials } from "../../shared/credentials/store.js";
+import {hasCredentials} from "../../shared/credentials/store.js";
 
 if (dom.macInput) {
     createAutosuggest({
@@ -37,6 +43,16 @@ const targetPicker = createTargetPicker({
     fetchRootPointGroups,
 });
 
+// Err-disabled lookup has no MAC to search for: hide the field (and drop
+// `required`, or the browser would block the submit on a hidden input).
+function syncMacField() {
+    const needsMac = !NO_MAC_ACTIONS.has(dom.actionSelect.value);
+    if (dom.macField) dom.macField.hidden = !needsMac;
+    if (dom.macInput) dom.macInput.required = needsMac;
+}
+dom.actionSelect?.addEventListener("change", syncMacField);
+syncMacField();
+
 dom.form?.addEventListener("submit", async (event) => {
     event.preventDefault();
 
@@ -45,11 +61,13 @@ dom.form?.addEventListener("submit", async (event) => {
         return;
     }
 
+    const action = dom.actionSelect.value;
+    const needsMac = !NO_MAC_ACTIONS.has(action);
     const mac = dom.macInput.value.trim();
     const targets = targetPicker.getSelectedTargets();
-    const endpoint = ACTION_ENDPOINTS[dom.actionSelect.value];
+    const endpoint = ACTION_ENDPOINTS[action];
 
-    if (!mac || !targets.length || !endpoint) {
+    if ((needsMac && !mac) || !targets.length || !endpoint) {
         return;
     }
 
@@ -58,8 +76,8 @@ dom.form?.addEventListener("submit", async (event) => {
     dom.resultsEl.hidden = true;
 
     try {
-        // NOTE: `group` is now always a list of strings, for all three
-        // actions (static/trunk/port-security share this one request body):
+        // NOTE: `group` is now always a list of strings, for all the MAC
+        // actions (static/trunk share this one request body):
         // either the checked groups under a root point, or - if none were
         // picked - the root point's own name as a single-item list. Confirm
         // MacLookupRequest.group accepts a list (and, for the root-point
@@ -70,7 +88,7 @@ dom.form?.addEventListener("submit", async (event) => {
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
                 group: targets,
-                mac_suffix: mac,
+                ...(needsMac && { mac_suffix: mac }),
                 username: localStorage.getItem("ssh_username"),
                 password: localStorage.getItem("ssh_password"),
             }),
@@ -82,8 +100,8 @@ dom.form?.addEventListener("submit", async (event) => {
         }
 
         const data = await response.json();
-        pushSearch(MAC_HISTORY_KIND, mac);
-        renderResults(dom.resultsEl, data.results);
+        if (needsMac) pushSearch(MAC_HISTORY_KIND, mac);
+        renderResults(dom.resultsEl, data.results, { errDisabled: !needsMac });
     } catch (err) {
         renderError(dom.resultsEl, "Lookup failed - check your connection and try again.");
         console.error(err);

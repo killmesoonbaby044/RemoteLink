@@ -265,15 +265,17 @@ function byNameAsc(a, b) {
     return a.name.localeCompare(b.name, undefined, { sensitivity: "base" });
 }
 
-/** Builds the "what can be added" picker used by the root point / group
- *  create+edit modal: a search box up top to cut down a long list, and
- *  the existing Groups / Hosts sections below it (sorted A→Z so the
- *  search actually helps). Filtering just hides rows - it never removes
- *  them from the DOM, so collectPayload()'s checked-checkbox query still
- *  sees every selection regardless of what's currently filtered out. */
+/** Builds the member picker used by the root point / group create+edit
+ *  modal - two panes side by side:
+ *    left  - everything that can be added (filter box, Groups / Hosts
+ *            sections sorted A→Z, host address and group size shown),
+ *            plus "Select shown" / "Clear" for bulk picks;
+ *    right - what's selected so far, each with a × to drop it.
+ *  The checkboxes on the left stay the single source of truth:
+ *  filtering only hides rows (collectPayload()'s checked-checkbox query
+ *  still sees every selection) and the right pane is redrawn from them. */
 function buildMembersBox(fieldKey, type, existing) {
     const wrapper = el("div", { class: "members-field" });
-    const box = el("div", { class: "multiselect", id: `f-${fieldKey}` });
     const selected = new Set((existing && existing[fieldKey]) || []);
 
     const hostOptions = [...state.hosts].sort(byNameAsc);
@@ -282,34 +284,32 @@ function buildMembersBox(fieldKey, type, existing) {
         .sort(byNameAsc);
 
     if (hostOptions.length === 0 && groupOptions.length === 0) {
-        box.appendChild(el("div", { class: "multiselect-empty", text: "No hosts or groups exist yet." }));
-        wrapper.appendChild(box);
+        wrapper.appendChild(el("div", { class: "multiselect multiselect-empty", text: "No hosts or groups exist yet." }));
         return wrapper;
     }
 
-    let groupHeading = null;
-    let hostHeading = null;
-    const groupRows = [];
-    const hostRows = [];
+    // ---- left: available ----
+    const box = el("div", { class: "multiselect", id: `f-${fieldKey}` });
+    const sections = [];
+    const rows = [];
 
-    if (groupOptions.length > 0) {
-        groupHeading = el("div", { class: "multiselect-heading", text: "Groups" });
-        box.appendChild(groupHeading);
-        for (const g of groupOptions) {
-            const row = memberCheckbox(fieldKey, g.name, selected);
-            groupRows.push(row);
+    function addSection(title, kind, options, meta) {
+        if (options.length === 0) return;
+        const heading = el("div", { class: "multiselect-heading", text: title });
+        box.appendChild(heading);
+        const sectionRows = options.map((item) => {
+            const row = memberCheckbox(fieldKey, item.name, selected, kind, meta(item));
             box.appendChild(row);
-        }
+            return row;
+        });
+        sections.push({ heading, rows: sectionRows });
+        rows.push(...sectionRows);
     }
-    if (hostOptions.length > 0) {
-        hostHeading = el("div", { class: "multiselect-heading", text: "Hosts" });
-        box.appendChild(hostHeading);
-        for (const h of hostOptions) {
-            const row = memberCheckbox(fieldKey, h.name, selected);
-            hostRows.push(row);
-            box.appendChild(row);
-        }
-    }
+    addSection("Groups", "group", groupOptions, (g) => {
+        const count = (g.members || []).length;
+        return `${count} member${count === 1 ? "" : "s"}`;
+    });
+    addSection("Hosts", "host", hostOptions, (h) => h.address || "");
 
     const noMatches = el("div", { class: "multiselect-empty is-hidden", text: "No matches." });
     box.appendChild(noMatches);
@@ -317,39 +317,110 @@ function buildMembersBox(fieldKey, type, existing) {
     const searchInput = el("input", {
         type: "search",
         class: "search-input multiselect-search",
-        placeholder: "Filter hosts and groups…",
+        placeholder: "Filter by name or address…",
         autocomplete: "off",
     });
-    searchInput.addEventListener("input", () => {
+
+    function applyFilter() {
         const q = searchInput.value.trim().toLowerCase();
-        let groupVisible = 0;
-        let hostVisible = 0;
-        for (const row of groupRows) {
-            const match = row.textContent.toLowerCase().includes(q);
-            row.style.display = match ? "" : "none";
-            if (match) groupVisible++;
+        let visible = 0;
+        for (const section of sections) {
+            let sectionVisible = 0;
+            for (const row of section.rows) {
+                const match = row.dataset.search.includes(q);
+                // inline style, not .is-hidden: `.multiselect label`
+                // (display: flex) is more specific and would win
+                row.style.display = match ? "" : "none";
+                if (match) sectionVisible++;
+            }
+            section.heading.classList.toggle("is-hidden", sectionVisible === 0);
+            visible += sectionVisible;
         }
-        for (const row of hostRows) {
-            const match = row.textContent.toLowerCase().includes(q);
-            row.style.display = match ? "" : "none";
-            if (match) hostVisible++;
-        }
-        if (groupHeading) groupHeading.classList.toggle("is-hidden", groupVisible === 0);
-        if (hostHeading) hostHeading.classList.toggle("is-hidden", hostVisible === 0);
-        noMatches.classList.toggle("is-hidden", groupVisible + hostVisible > 0);
+        noMatches.classList.toggle("is-hidden", visible > 0);
+    }
+    searchInput.addEventListener("input", applyFilter);
+    // Enter in the filter would submit the whole modal form.
+    searchInput.addEventListener("keydown", (e) => {
+        if (e.key === "Enter") e.preventDefault();
     });
 
-    wrapper.appendChild(searchInput);
-    wrapper.appendChild(box);
+    function setChecked(rowList, checked) {
+        for (const row of rowList) row.querySelector("input").checked = checked;
+        renderSelected();
+    }
+
+    const bulk = el("div", { class: "members-bulk" }, [
+        el("button", {
+            type: "button",
+            class: "btn btn-ghost btn-small",
+            text: "Select shown",
+            onclick: () => setChecked(rows.filter((r) => r.style.display !== "none"), true),
+        }),
+        el("button", {
+            type: "button",
+            class: "btn btn-ghost btn-small",
+            text: "Clear",
+            onclick: () => setChecked(rows, false),
+        }),
+    ]);
+
+    const available = el("div", { class: "members-pane" }, [
+        el("div", { class: "members-pane-head" }, [
+            el("span", { class: "members-pane-title", text: "Available" }),
+            bulk,
+        ]),
+        searchInput,
+        box,
+    ]);
+
+    // ---- right: selected ----
+    const selectedTitle = el("span", { class: "members-pane-title" });
+    const selectedList = el("div", { class: "multiselect members-selected" });
+
+    function renderSelected() {
+        const checked = rows.filter((r) => r.querySelector("input").checked);
+        selectedTitle.textContent = `Selected · ${checked.length}`;
+        selectedList.innerHTML = "";
+        if (checked.length === 0) {
+            selectedList.appendChild(el("div", { class: "multiselect-empty", text: "Nothing selected yet - tick items on the left." }));
+            return;
+        }
+        for (const row of checked) {
+            const name = row.querySelector("input").value;
+            selectedList.appendChild(el("div", { class: "members-chip" }, [
+                el("span", { class: `members-kind members-kind-${row.dataset.kind}`, text: row.dataset.kind === "group" ? "G" : "H" }),
+                el("span", { class: "members-chip-name", text: name }),
+                el("button", {
+                    type: "button",
+                    class: "members-chip-remove",
+                    "aria-label": `Remove ${name}`,
+                    text: "×",
+                    onclick: () => setChecked([row], false),
+                }),
+            ]));
+        }
+    }
+    box.addEventListener("change", renderSelected);
+    renderSelected();
+
+    const chosen = el("div", { class: "members-pane" }, [
+        el("div", { class: "members-pane-head" }, [selectedTitle]),
+        selectedList,
+    ]);
+
+    wrapper.appendChild(available);
+    wrapper.appendChild(chosen);
     return wrapper;
 }
 
-function memberCheckbox(fieldKey, name, selectedSet) {
-    const label = el("label", {});
+function memberCheckbox(fieldKey, name, selectedSet, kind, meta) {
+    const label = el("label", { "data-kind": kind });
+    label.dataset.search = `${name} ${meta}`.toLowerCase();
     const checkbox = el("input", { type: "checkbox", value: name, name: fieldKey });
     if (selectedSet.has(name)) checkbox.checked = true;
     label.appendChild(checkbox);
-    label.appendChild(document.createTextNode(name));
+    label.appendChild(el("span", { class: "multiselect-name", text: name }));
+    if (meta) label.appendChild(el("span", { class: "multiselect-meta", text: meta }));
     return label;
 }
 
@@ -420,6 +491,10 @@ function openModal(type, existing) {
             errorBox.classList.remove("is-hidden");
         }
     };
+
+    // Root points and groups carry the member picker - give it room.
+    const hasMembers = schema.fields.some((f) => f.type === "members");
+    document.querySelector("#modal-backdrop .modal").classList.toggle("modal-wide", hasMembers);
 
     document.getElementById("modal-backdrop").classList.remove("is-hidden");
     const firstInput = form.querySelector("input:not([disabled])");

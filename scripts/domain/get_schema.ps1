@@ -1,11 +1,16 @@
-<#
+﻿<#
     Dumps raw data only (Name, DN, ParentDN) for every OU that directly contains
     at least one user, grouped into Root1 / Root2 / Extra.
     No prints other than the final JSON on stdout. All input is hardcoded below.
     Name normalization ("Users" -> parent name, etc.) is intentionally NOT done
     here — it's done on the Python side (see accompanying script).
 #>
-[Console]::OutputEncoding = [System.Text.Encoding]::UTF8
+# Force UTF-8 for output, including output passed through the PowerShell pipeline.
+$utf8 = [System.Text.UTF8Encoding]::new($false)
+
+[Console]::InputEncoding = $utf8
+[Console]::OutputEncoding = $utf8
+$OutputEncoding = $utf8
 
 # ---- hardcoded input (edit these) ----
 $RootOU1      = "OU=Администрация,DC=adm,DC=dsszzi"

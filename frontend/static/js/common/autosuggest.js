@@ -10,6 +10,14 @@
 // Keyboard: ArrowDown/ArrowUp move through the list (and open it if closed),
 // Enter picks the highlighted row, Escape closes. Enter with no highlighted
 // row still submits the form as before.
+//
+// Optional hooks, for lists whose row text isn't the value to fill in
+// (e.g. the VLAN pickers: row "374 (USERS)", value "374"):
+//   getQuery()        - the text to filter by (default: the whole input)
+//   matches(item, q)  - whether a row matches (default: starts with q)
+//   applyItem(item)   - what picking a row does (default: input = item)
+// A pick fires a "change" event on the input, so forms listening for
+// changes see it.
 
 export function createAutosuggest({
     wrapper,
@@ -17,6 +25,9 @@ export function createAutosuggest({
     menu,
     getItems,
     className = "autosuggest-open",
+    getQuery = () => input.value,
+    matches = (item, query) => item.toLowerCase().startsWith(query),
+    applyItem = (item) => { input.value = item; },
 }) {
     let activeIndex = -1;
 
@@ -34,18 +45,23 @@ export function createAutosuggest({
         activeIndex = -1;
     }
 
+    function currentQuery() {
+        return getQuery().trim().toLowerCase();
+    }
+
     function matchingItems() {
-        const query = input.value.trim().toLowerCase();
+        const query = currentQuery();
         const items = getItems();
 
         if (!query) return items;
-        return items.filter((item) => String(item).toLowerCase().startsWith(query));
+        return items.filter((item) => matches(String(item), query));
     }
 
     function select(item) {
-        input.value = item;
+        applyItem(item);
         close();
         input.focus();
+        input.dispatchEvent(new Event("change", { bubbles: true }));
     }
 
     function setActive(index) {
@@ -69,7 +85,7 @@ export function createAutosuggest({
         // Re-rendering while already open (typing): skip the entrance animation
         // so the list doesn't flicker on every keystroke.
         const wasOpen = isOpen();
-        const prefixLength = input.value.trim().length;
+        const query = currentQuery();
 
         menu.innerHTML = "";
         activeIndex = -1;
@@ -79,11 +95,13 @@ export function createAutosuggest({
             const row = document.createElement("div");
             row.className = "autosuggest-row";
 
-            if (prefixLength) {
+            // highlight the typed prefix (rows matched some other way,
+            // e.g. by VLAN name, just aren't highlighted)
+            if (query && text.toLowerCase().startsWith(query)) {
                 const match = document.createElement("span");
                 match.className = "autosuggest-match";
-                match.textContent = text.slice(0, prefixLength);
-                row.append(match, text.slice(prefixLength));
+                match.textContent = text.slice(0, query.length);
+                row.append(match, text.slice(query.length));
             } else {
                 row.textContent = text;
             }

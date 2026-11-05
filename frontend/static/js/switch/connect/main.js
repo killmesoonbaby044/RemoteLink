@@ -1,10 +1,10 @@
-// Entry point for the "Connect to device" form (templates/pages/switches.html).
+// Entry point for the "Connect to device" form (template/pages/switch/switch_connect.html).
 // Was switches.js at the top level - moved here alongside lookup/ and
 // inventory/ so all of switch scope lives in one place.
 
-import { getRecentHosts } from "../../shared/history/store.js";
-import { hasCredentials } from "../../shared/credentials/store.js";
-import { createAutosuggest } from "../../common/autosuggest.js"
+import {getRecentHosts} from "../../shared/history/store.js";
+import {hasCredentials} from "../../shared/credentials/store.js";
+import {createAutosuggest} from "../../common/autosuggest.js"
 
 const connectForm = document.getElementById("connect-form");
 const hostInput = document.getElementById("host");

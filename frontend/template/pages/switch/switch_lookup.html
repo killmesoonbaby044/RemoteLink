@@ -1,10 +1,8 @@
 {% extends "base.html" %}
-{% from "macros/autosuggest_input.html" import autosuggest_input %}
-{% from "macros/script_list.html" import script_list %}
 
 
 {% block title %}
-Connect to device
+MAC address lookup
 {% endblock %}
 
 
@@ -13,7 +11,6 @@ Connect to device
 <link rel="stylesheet" href="/static/css/shared/forms.css">
 <link rel="stylesheet" href="/static/css/shared/connect-layout.css">
 <link rel="stylesheet" href="/static/css/shared/search.css">
-<link rel="stylesheet" href="/static/css/shared/script-list.css">
 <link rel="stylesheet" href="/static/css/switches/switches.css">
 
 {% endblock %}
@@ -22,37 +19,6 @@ Connect to device
 {% block content %}
 
 <div class="connect-container">
-
-    <section class="connect-section">
-
-        <h1>
-            Connect to device
-        </h1>
-
-        <p class="script-description">
-            Enter an IP address or hostname, then connect.
-        </p>
-
-        <form id="connect-form" class="app-form">
-
-            <label for="host">
-                IP address or hostname
-            </label>
-
-            <div class="input-row">
-
-                {{ autosuggest_input("host", "host", "192.168.1.1") }}
-
-                <button type="submit" id="connect-submit">
-                    Connect
-                </button>
-
-            </div>
-
-        </form>
-
-    </section>
-
 
     <section class="connect-section lookup-section">
 
@@ -66,7 +32,7 @@ Connect to device
 
         <form id="lookup-form" class="app-form">
 
-            <div class="form-field">
+            <div class="form-field" id="mac-suffix-field">
                 <label for="mac-suffix">
                     MAC address
                 </label>
@@ -94,9 +60,9 @@ Connect to device
                     Lookup type
                 </label>
                 <select id="lookup-action" name="action" required>
-                    <option value="static">Access</option>
+                    <option value="static">Access (MAC table + port-security)</option>
                     <option value="trunk">Trunk</option>
-                    <option value="port-security">Port-security</option>
+                    <option value="err-disabled">Err-disabled ports</option>
                 </select>
             </div>
 
@@ -133,35 +99,6 @@ Connect to device
 
     </section>
 
-
-    <section class="scripts-section">
-
-        <h1>
-            Run a script
-        </h1>
-
-
-        {% if scripts %}
-
-        <p class="script-description">
-            Select a script to open a terminal session.
-        </p>
-
-        {{ script_list(scripts) }}
-
-        {% else %}
-
-        <div class="empty-scripts">
-
-            No scripts found. Add files to
-            <code>scripts/</code>.
-
-        </div>
-
-        {% endif %}
-
-    </section>
-
 </div>
 
 {% endblock %}
@@ -169,7 +106,6 @@ Connect to device
 
 {% block scripts %}
 
-<script type="module" src="/static/js/switch/connect/main.js"></script>
 <script type="module" src="/static/js/switch/lookup/lookup.js"></script>
 
 {% endblock %}

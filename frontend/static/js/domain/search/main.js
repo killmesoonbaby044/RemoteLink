@@ -16,6 +16,14 @@ import {hideScripts, renderResults, showScripts} from "./render.js";
 // targeted scripts panel is visible at a time.
 const blocks = [];
 
+// Plain dotted IPv4, each octet 0-255 - anything else (names, FQDNs) is
+// searched in AD as before.
+const IPV4_RE = /^(?:(?:25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)\.){3}(?:25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)$/;
+
+function isIpAddress(value) {
+    return IPV4_RE.test(value);
+}
+
 function initSearchBlock(config) {
     const dom = getSearchDom(config);
 
@@ -51,6 +59,24 @@ function initSearchBlock(config) {
         pushHistory({ type: "script", folder: config.kind, script: scriptName, args: targetName });
     });
 
+    function selectTarget(name) {
+        showScripts({ dom }, name, (scriptName, targetName) =>
+            scriptHrefFor(config.kind, scriptName, targetName));
+
+        // only one targeted scripts panel at a time
+        blocks
+            .filter((other) => other !== dom && other.scriptsSection)
+            .forEach((other) => hideScripts({ dom: other }));
+    }
+
+    // No AD lookup for an IP - the IP itself is the target.
+    function useIpTarget(ip) {
+        pushSearch(config.kind, ip);
+        dom.results.innerHTML = "";
+        dom.status.textContent = "IP address - not looked up in AD, scripts run against it directly.";
+        selectTarget(ip);
+    }
+
     function runSearch(query, { script, recordHistory = true } = {}) {
         dom.results.innerHTML = "";
         dom.status.textContent = "Searching...";
@@ -66,15 +92,7 @@ function initSearchBlock(config) {
         searchEntities(dom.form, query, { script })
             .then((names) => {
                 renderResults({ config, dom }, names, {
-                    onSelect: (name) => {
-                        showScripts({ dom }, name, (scriptName, targetName) =>
-                            scriptHrefFor(config.kind, scriptName, targetName));
-
-                        // only one targeted scripts panel at a time
-                        blocks
-                            .filter((other) => other !== dom && other.scriptsSection)
-                            .forEach((other) => hideScripts({ dom: other }));
-                    },
+                    onSelect: selectTarget,
                     onDeselect: () => hideScripts({ dom }),
                 });
             })
@@ -88,6 +106,11 @@ function initSearchBlock(config) {
 
         const query = dom.input.value.trim();
         if (!query) {
+            return;
+        }
+
+        if (config.allowIpTarget && isIpAddress(query)) {
+            useIpTarget(query);
             return;
         }
 

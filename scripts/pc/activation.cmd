@@ -23,9 +23,17 @@ if not defined FILENAME (
     exit /b 1
 )
 
-set "SRC=C:\Scripts\%FILENAME%"
+:: office.cmd / windows.cmd live next to this script, in pc\activation\
+:: (%~dp0 = this script's own folder, with a trailing backslash)
+set "SRC=%~dp0activation\%FILENAME%"
 set "DEST=\\%PC%\C$\Shortcuts"
 set "LOCALDEST=C:\Shortcuts"
+
+if not exist "%SRC%" (
+    echo [ERROR] "%SRC%" not found. Put %FILENAME% into the scripts\pc\activation folder.
+    pause
+    exit /b 1
+)
 
 if not exist "%DEST%" mkdir "%DEST%"
 if errorlevel 1 (

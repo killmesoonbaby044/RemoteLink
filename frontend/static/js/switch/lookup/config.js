@@ -1,4 +1,4 @@
-// Config for the "MAC address lookup" block (templates/switches.html).
+// Config for the "MAC address lookup" block (template/pages/switch/switch_lookup.html).
 
 // Adjust this if your API router is mounted under a prefix (e.g. "/api").
 export const API_BASE = "/switch";
@@ -7,8 +7,12 @@ export const API_BASE = "/switch";
 export const ACTION_ENDPOINTS = {
     "static": `${API_BASE}/tasks/mac-lookup`,
     "trunk": `${API_BASE}/tasks/mac-lookup-trunk`,
-    "port-security": `${API_BASE}/tasks/port-security-lookup`,
+    "err-disabled": `${API_BASE}/tasks/err-disabled-lookup`,
 };
+
+// Lookup types that don't search for a MAC: the MAC field is hidden and
+// the request goes without mac_suffix.
+export const NO_MAC_ACTIONS = new Set(["err-disabled"]);
 
 export const ROOT_POINT_RADIO_NAME = "lookup-root-point-choice";
 export const TARGET_RADIO_NAME = "lookup-target-choice";

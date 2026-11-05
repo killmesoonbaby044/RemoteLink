@@ -1,5 +1,8 @@
 """Executes scripted SSH work against switches: a single non-interactive
-command session, and a group-wide runner built on top of it.
+command session, plus a group-wide runner and a single-host runner built
+on top of it. Task modules (mac_lookup/tasks.py, interface/tasks.py) only
+decide which commands to send and how to read the output; everything
+about connecting lives here.
 
 Deliberately separate from SSHSession (app/services/sessions/ssh_session.py):
 that class permanently bridges one asyncssh process with one browser
@@ -19,17 +22,15 @@ from typing import Any, Callable
 
 import asyncssh
 
+from app.services.switch.errors import SwitchConnectionError
 from app.services.switch.inventory.switch_inventory_service import (
     switch_inventory_service,
 )
-from app.services.switch.inventory.inventory_errors import InventoryError
-from app.services.switch.mac_lookup import build_mac_filter, find_by_suffix
 from app.services.switch.schemas import (
     CommandResult,
     Host,
     HostTaskResult,
-    MacLookupRequest,
-    MacLookupResponse,
+    SwitchRequest,
 )
 
 # Parses one host's raw command output (given the host name, for
@@ -37,14 +38,7 @@ from app.services.switch.schemas import (
 ParseFn = Callable[[str, str], list[Any]]
 
 
-def _build_command(base: str, suffix: str) -> str:
-    """`base` is the show command without the pipe, e.g.
-    "show mac address-table static" or "show port-security address"."""
-
-    return f"{base} | include {build_mac_filter(suffix)}"
-
-
-async def _run_commands(
+async def run_commands(
     host: Host,
     username: str,
     password: str,
@@ -67,6 +61,7 @@ async def _run_commands(
             username=username,
             password=password,
             known_hosts=None,
+            connect_timeout=timeout,
         ) as conn:
             async with conn.create_process(
                 term_type="vt100", encoding="utf-8"
@@ -81,10 +76,16 @@ async def _run_commands(
                 return CommandResult(host=host.name, ok=True, output=output)
 
     except (asyncssh.Error, OSError, asyncio.TimeoutError) as exc:
-        return CommandResult(host=host.name, ok=False, error=str(exc))
+        # TimeoutError (and some OSErrors) stringify to "" - never hand
+        # back an empty error, the UI shows it as the failure reason.
+        if isinstance(exc, asyncio.TimeoutError):
+            error = f"timed out after {timeout:g}s"
+        else:
+            error = str(exc) or type(exc).__name__
+        return CommandResult(host=host.name, ok=False, error=error)
 
 
-async def _run_task_on_group(
+async def run_on_group(
     group_name: list[str],
     username: str,
     password: str,
@@ -101,7 +102,7 @@ async def _run_task_on_group(
 
     async def run_one(host: Host) -> HostTaskResult:
         async with semaphore:
-            result = await _run_commands(host, username, password, commands)
+            result = await run_commands(host, username, password, commands)
 
         if not result.ok:
             return HostTaskResult(
@@ -122,18 +123,15 @@ async def _run_task_on_group(
     return list(await asyncio.gather(*(run_one(h) for h in hosts)))
 
 
-async def run_lookup(req: MacLookupRequest, base_command: str) -> MacLookupResponse:
-    try:
-        results = await _run_task_on_group(
-            group_name=req.group,
-            username=req.username,
-            password=req.password,
-            commands=[_build_command(base_command, req.mac_suffix)],
-            parse=lambda host, output: find_by_suffix(host, output, req.mac_suffix),
-        )
-    except InventoryError as exc:
-        return MacLookupResponse(
-            results=[HostTaskResult(host=",".join(req.group), ok=False, error=str(exc))]
-        )
+async def run_on_host(
+    req: SwitchRequest, commands: list[str], timeout: float = 30.0
+) -> str:
+    """Single-host counterpart of run_on_group: unlike a group lookup, a
+    failed connection here is the whole answer, so it's raised
+    (SwitchConnectionError) instead of folded into a per-host result."""
 
-    return MacLookupResponse(results=results)
+    host = await switch_inventory_service.get_host(req.host)
+    result = await run_commands(host, req.username, req.password, commands, timeout)
+    if not result.ok:
+        raise SwitchConnectionError(f"{host.name} ({host.address}): {result.error}")
+    return result.output

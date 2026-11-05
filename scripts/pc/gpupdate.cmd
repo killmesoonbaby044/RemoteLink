@@ -1,4 +1,5 @@
-@echo off
+﻿@echo off
+chcp 65001 >nul
 
 :: Use the parameter passed from CMD 1 (%1), or prompt if empty
 set "PC=%~1"

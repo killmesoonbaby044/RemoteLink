@@ -26,7 +26,7 @@ the same move.
 
 | Folder | What goes here |
 |---|---|
-| `switch/` | Everything specific to the switch scope: `connect/`, `lookup/`, `inventory/` |
+| `switch/` | Everything specific to the switch scope: `connect/`, `lookup/`, `inventory/`, `interface/` |
 | `domain/` | Everything specific to the AD domain scope: `search/`, `schema/`, `add-user/` |
 | `shared/` | Cross-scope **features** — their own state, DOM, endpoints, used by both scopes: `auth/`, `history/`, `credentials/`, `terminal/` |
 | `common/` | Stateless **helpers** with no identity of their own — a fetch wrapper, an href builder. Don't know what app they're in. |
@@ -43,7 +43,7 @@ instead.
 
 ## Module shape
 
-Every feature folder (`switch/lookup`, `switch/inventory`, `domain/search`, `domain/inventory`,
+Every feature folder (`switch/lookup`, `switch/inventory`, `switch/interface`, `domain/search`, `domain/inventory`,
 `domain/add-user`, `shared/terminal`) follows the same shape, first established in
 `switch/lookup` — see its own `README_SWITCH.md` for the original write-up:
 
@@ -93,12 +93,35 @@ This also gave `domain/inventory` a real `config.js` (the users-lookup endpoint,
 `/domain/script/get_users` — separate from `dom.endpoint`, which is the schema list
 endpoint and stays wired per-page via `.schema-page`'s `data-endpoint`).
 
+`switch/interface` is the biggest feature, so its entry file is split by job instead of
+holding everything. `main.js` only handles step 1 (device pick) and calls each module's
+`wire*()` function:
+
+- **`device-picker.js`** — the root point → group → host tree (same look as the inventory
+  Hierarchy tab, via the shared `css/shared/tree.css`), plus a flat "matches" list while a
+  search query is typed. Reports picks through `onPick(host)`.
+- **`ports.js`** — step 2: the interface list, its filter, and opening a port.
+- **`form.js`** — step 3's form: pre-fill from the running config, lines marked for removal,
+  extra lines, building the change payload, the dry-run preview.
+- **`results.js`** — Run, the result panel, Save (from the result or the Configure header),
+  Revert, and the "unsaved changes" state of the header Save button.
+- **`actions.js`** — the one-click port actions and their confirmation box.
+- **`state.js`** — the single shared state object, plus `hooks.refreshInterfaces`, which
+  `main.js` points at `ports.loadInterfaces` so `results.js`/`actions.js` can refresh the list
+  without importing `ports.js` (imports only point "down": main → ports → form ← results ←
+  actions).
+- **`ui.js`** — stateless helpers (credentials check, busy buttons, `reveal()` for
+  scroll + focus).
+
 ## Page → entry file map
 
 | Template | Loads |
 |---|---|
-| `pages/switches.html` | `switch/connect/main.js` + `switch/lookup/lookup.js` |
-| `pages/switch_inventory.html` | `switch/inventory/main.js` |
+| `pages/switch/network_hub.html` | — (static links, `css/inventory_hub.css`) |
+| `pages/switch/switch_connect.html` | `switch/connect/main.js` |
+| `pages/switch/switch_lookup.html` | `switch/lookup/lookup.js` |
+| `pages/switch/switch_interface.html` | `switch/interface/main.js` |
+| `pages/switch/switch_inventory.html` | `switch/inventory/main.js` |
 | `pages/domain/domain.html` | `domain/search/main.js` |
 | `pages/domain/domain_schema.html` | `domain/inventory/main.js` |
 | `pages/domain/domain_add_user.html` | `domain/add-user/main.js` |
@@ -128,7 +151,7 @@ get mixed into `terminal_history`/`search_history:<kind>`. If a future feature w
 - **The plain "Run a script" list is dead.** `macros/script_list.html`'s `scope`-based
   (non-targeted) list expects `common/script_links.js`'s `initScriptList()` to fill in
   hrefs and wire click-to-history — but nothing currently calls `initScriptList()`
-  anywhere, and `pages/switches.html`'s `{{ script_list(scripts) }}` call doesn't pass a
+  anywhere, and `pages/switch/switch_connect.html`'s `{{ script_list(scripts) }}` call doesn't pass a
   `scope=` argument either, so `data-scope` never renders. Net effect: those links are
   `href="#"` and do nothing. Needs someone to decide the actual `scope` value the backend
   expects and wire the call into `switch/connect/main.js`.

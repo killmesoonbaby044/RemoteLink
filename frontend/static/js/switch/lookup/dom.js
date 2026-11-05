@@ -3,6 +3,7 @@
 // instead of each calling document.getElementById themselves.
 
 export const form = document.getElementById("lookup-form");
+export const macField = document.getElementById("mac-suffix-field");
 export const macInput = document.getElementById("mac-suffix");
 export const macWrapper = document.getElementById("mac-suffix-wrapper");
 export const macMenu = document.getElementById("mac-suffix-menu");

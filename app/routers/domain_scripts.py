@@ -24,7 +24,7 @@ async def run_script_endpoint(
 
     result = await run_search(request_params)
 
-    if "search_users" in request_params.script:
+    if "users" in request_params.script and request_params.folder == "root":
         result = [f'{item["Name"]}[{item["SamAccountName"]}]' for item in result]
     return {"result": result}
 

@@ -1,100 +1,160 @@
 # RemoteLink
 
-A browser-based remote administration console. It gives support/ops staff one web page to open an interactive SSH terminal to any host, or run a local admin script against a target — both streamed live into an [xterm.js](https://xtermjs.org/) terminal over a WebSocket.
+A browser-based admin console for support/ops staff. One web app, three areas:
+
+- **Domain** — search Active Directory users and PCs, run scoped scripts against them, add users, browse the OU tree.
+- **Network** — SSH to a device, find a MAC address across the switch inventory, view and change Cisco switch interfaces.
+- **Inventory** — the switch inventory (root points → groups → hosts) and the AD OU tree.
+
+Interactive work (SSH sessions, scripts that prompt) is streamed live into an [xterm.js](https://xtermjs.org/) terminal over a WebSocket. Non-interactive work (searches, lookups, interface changes) goes through JSON endpoints.
+
+Developed on macOS, deployed on Windows: the domain scripts are `.ps1` / `.cmd`.
 
 ## Features
 
-- **SSH terminal** — enter a hostname/IP on `/connect` and get a full interactive shell in the browser (`asyncssh` under the hood).
-- **Script runner** — runs files from a local `scripts/` folder inside a real PTY (`ptyprocess` on macOS/Linux, `pywinpty` on Windows), so interactive prompts, typed input, and even a script that opens its own nested SSH session all work like a normal terminal.
-- **Entity search → scoped scripts** — the home page (`/`) has "Search users" and "Search PC" boxes. Each runs a search script, parses `SEARCH_RESULTS: name1|name2|...` lines out of its output, and lets you pick a result to reveal scripts scoped to that user/PC (`scripts/user/*`, `scripts/pc/*`), pre-filled with the picked name as an argument.
-- **Credentials page** — SSH username/password entered once on `/credentials` and reused for every SSH connection (stored in the browser's `localStorage`, not on the server).
-- **Connection history** — the last 10 SSH connections and script runs are kept client-side and surfaced as a "History" dropdown in the header and as autosuggest options on the host/search fields.
-- **Authentication** — every page and WebSocket route (aside from `/login`/`/auth`) requires a valid JWT, issued at login and stored as an HTTP-only cookie. Missing/invalid/expired tokens are treated as unauthorized (401); a token that doesn't match the running app instance or the configured owner is treated as forbidden (403).
+### Domain (`/domain`)
+- **Search users / Search PC** — runs `scripts/root/search_users.ps1` / `search_pcs.ps1`, which print a JSON array. Picking a result reveals the scripts in `scripts/user/` or `scripts/pc/`, pre-filled with the picked name.
+- **Add user** (`/domain/add_user`) — form, or upload a `.doc`/`.docx` to pre-fill it; runs `scripts/domain/create_user.ps1`. The OU picker remembers recent picks.
+- **Domain inventory** (`/domain/inventory`) — the OU tree, synced from AD with `scripts/domain/get_schema.ps1` and cached in SQLite. Each OU row expands to the users in it (`users_by_OU.ps1`).
+
+### Network (`/switch`)
+A hub page with three tools:
+- **Connect to device** (`/switch/connect`) — interactive SSH terminal to any host (`asyncssh`).
+- **MAC lookup** (`/switch/lookup`) — finds a MAC (or its last hex characters) in the static / dynamic / port-security MAC tables of every switch under a root point or group, concurrently.
+- **Interface config** (`/switch/interface`) — for Cisco IOS switches:
+  1. pick a switch from the inventory tree (or search by name/address);
+  2. pick an interface from `show interfaces status`;
+  3. the form is pre-filled from `show running-config interface X`. Only fields you change are sent; a cleared field sends `no …`.
+  - **Access ports:** description, access VLAN, mode access, port-security (*On + sticky MAC* / *On* / *Off*), port-security maximum, free-text extra lines, and clicking a running-config line to remove it. One-click **Enable / Disable / Restart**, **Clear sticky MACs**, **Reset port-security** (each confirms first).
+  - **Trunk ports:** description and add/remove allowed VLANs only. A port counts as a trunk if it has `switchport mode trunk` **or** `show interfaces X switchport` reports *Operational Mode: trunk* (DTP-negotiated trunks, port-channel members). If that mode can't be read, the port is treated as a trunk (locked).
+  - **Preview** shows the exact commands → **Run** sends them in one SSH session and shows the new `show run int` → **Save** (`write memory`) or **Revert** (back to the config from before the run). A header **Save switch config** button turns blue while the running-config has unsaved changes.
+
+### Inventory (`/inventory_hub`)
+- **Network inventory** (`/switch/inventory`) — CRUD for hosts, groups (can nest) and root points, plus a read-only hierarchy view. Stored in SQLite.
+- **Domain inventory** — see above.
+
+### Shared
+- **Credentials** (`/credentials`) — the SSH username/password, entered once and reused for SSH, MAC lookup and interface config. Kept in the browser's `localStorage`, not on the server.
+- **History** — recent SSH connections, script runs and searches, in the header dropdown and as autosuggest.
 
 ## How it works
 
-Both SSH sessions and script runs use the same model: the backend opens either a real SSH connection (`asyncssh`) or a local subprocess in a PTY, then relays raw bytes between it and a browser WebSocket (`io_relay.relay`) until either side closes. The frontend points a single `xterm.js` instance at whichever WebSocket the page needs:
+### Terminal sessions
+SSH sessions and interactive scripts use the same model: the backend opens either an SSH connection (`asyncssh`) or a local process in a PTY (`ptyprocess` on macOS/Linux, `pywinpty` on Windows), then relays raw bytes between it and a browser WebSocket (`io_relay.relay`) until either side closes.
 
-- `GET /terminal?host=<host>` → connects to `/ws/ssh`, which expects an `{type: "auth", username, password}` message first.
-- `GET /terminal?script=<name>` → connects to `/ws/script?name=<name>`, which resolves `<name>` inside `scripts/` (rejecting path traversal), picks an interpreter by file extension, and spawns it.
+- `/ssh_terminal?host=<host>` → WebSocket `/ws/ssh`, which expects `{type: "auth", username, password}` first.
+- `/terminal?folder=<f>&script=<name>` → WebSocket `/ws/script`, which resolves the script inside `scripts/<folder>/` (rejecting path traversal) and runs `.ps1` with `powershell` and `.cmd` with `cmd /c`.
 
-### Authentication flow
+### Switch tasks
+`app/services/switch/runtime.py` opens one SSH session per switch, writes a short scripted command list (`terminal length 0`, the commands, `exit`) and returns the transcript. Task modules only decide what to send and how to read the answer:
 
-- `POST /auth` validates credentials and, on success, sets the JWT as a cookie and returns `{"redirect": ...}`; on failure it returns `401`/`403` with a `{"detail": "..."}` message that `login.js` renders directly under the form.
-- Protected page routes depend on `validate_user`, which decodes the cookie's JWT and checks it against the running app's instance ID and configured owner. Failures raise `InvalidTokenError` / `HTTPException(403)`, which are converted to JSON `401`/`403` responses by the registered exception handlers.
-- `AuthRedirectMiddleware` inspects every HTTP response after that: if the status is `401`/`403` **and** the request looks like a real page navigation (`Accept: text/html`), it redirects to `/login` or `/stub` instead of returning raw JSON. Plain `fetch()` calls (which don't send `Accept: text/html`) get the JSON straight through.
-- `frontend/static/js/auth.js` patches `window.fetch` to redirect on `401`/`403` for any other API call the frontend makes, so page scripts don't each need their own auth-handling logic. It explicitly ignores `/auth` itself, so a failed login shows its message instead of bouncing back to `/login`.
-- WebSocket routes can't return an HTTP status or be redirected server-side, so they authenticate right after `accept()` via `authenticate_websocket` (same JWT checks as `validate_user`) and close the socket with a custom code instead: `4401` for unauthorized, `4403` for forbidden. `frontend/static/js/common/ws.js` reads that close code and redirects the browser accordingly.
+- `run_on_group` — every host under a group/root point, concurrently (MAC lookup). A failed host becomes a per-host error in the result.
+- `run_on_host` — one switch by inventory name (interface config). A failed connection raises `SwitchConnectionError` → HTTP 502.
+
+Interface changes are checked against the switch, not the page: before building commands the backend re-reads the interface's running config, so trunk/access rules and "remove this line" use the current state. Input is validated so nothing typed on the page can become a second IOS command (no newlines, no `?`, strict interface-name and VLAN-list formats).
+
+### Authentication
+- Login (`/login` → `POST /auth`) is delegated to an external auth service (`AUTH_API`), which checks the user against LDAP and returns a JWT. The app stores it as an HTTP-only cookie.
+- On startup the app registers itself with that service (`/register`) with the OS user and a random instance ID. A token is only accepted if it was issued for this instance and this owner.
+- Pages and API routes depend on `validate_user`. Failures become JSON `401`/`403`; for real page loads (`Accept: text/html`) `AuthRedirectMiddleware` turns either into a redirect to `/login?error=<reason>`, so the login page can say why.
+- `frontend/static/js/shared/auth/redirect.js` patches `window.fetch` to redirect on `401`/`403` (except for `/auth` itself, so a failed login shows its message).
+- WebSockets authenticate right after `accept()` (`authenticate_websocket`) and close with `4401` / `4403`; `common/ws.js` redirects on those codes.
+
+### Errors
+Each service keeps its exceptions in its own module and `app/core/exception_handlers.py` maps them to HTTP status codes. Routes don't catch them.
+
+| Exception | Status |
+|---|---|
+| `AuthenticationError` / `UserDisabledError` | 401 / 403 |
+| `InventoryError`: `NotFoundError` / `ConflictError` / other | 404 / 409 / 400 |
+| `SwitchTaskError`: `SwitchConnectionError` / `InterfaceChangeRejected` / other | 502 / 409 / 400 |
+| `InvalidScriptError` / `FileCheckError` | 404 / 400 |
 
 ## Project structure
 
 ```
+main.py                         FastAPI app, middleware, routers; picks a per-user loopback IP and runs uvicorn
 app/
-  config.py                    # paths, SCRIPTS_DIR, SSH_PORT
-  templating.py                # shared Jinja2Templates instance
+  config.py                     paths (scripts/, storage/, templates), Jinja2 templates instance
+  settings.py                   .env settings (auth service, JWT)
+  ip_app_resolve.py             per-OS-user loopback IP (127.0.0.2, .3, …) saved in storage/ip_map.json
   core/
-    auth/
-      auth_manager.py           # validate_user, authenticate_websocket, JWT checks
-      exception.py               # AuthenticationError and subclasses
-      exception_handlers.py      # maps auth exceptions -> 401/403 JSONResponse
-  middleware.py                 # AuthRedirectMiddleware (401/403 -> /login or /stub for page loads)
+    auth/                       validate_user, authenticate_websocket, auth exceptions
+    client/http.py              HTTP client for the auth service
+    database/blob_store.py      SQLite JSON blob store (WAL, atomic read-modify-write)
+    exception_handlers.py       exception -> HTTP status mapping
+    lifespan.py                 startup registration with the auth service
+    middleware.py               AuthRedirectMiddleware
   routers/
-    pages.py                   # /, /connect, /credentials, /terminal
-    auth.py                    # /login, /auth (not gated by validate_user)
-    ssh_ws.py                  # /ws/ssh
-    script_ws.py                # /ws/script
+    login.py                    /login, /auth
+    pages/                      HTML pages: app.py (/, hubs, credentials, terminals), domain.py, switches.py
+    ssh_ws.py, script_ws.py     /ws/ssh, /ws/script
+    domain_scripts.py           /domain/* JSON endpoints (search, add user, OU tree sync)
+    switch_inventory.py         /switch/inventory/* CRUD
+    switch_tasks.py             /switch/tasks/* (MAC lookup, interface config)
   services/
-    sessions/
-      ssh_session.py           # asyncssh <-> WebSocket bridge
-      process_session.py       # local PTY <-> WebSocket bridge
-      io_relay.py               # shared two-way relay helper
-    scripts/
-      script_runner.py          # script discovery + interpreter selection
-frontend/
-  templates/                    # Jinja2 pages, macros, components
-  static/
-    js/
-      auth.js                    # fetch() 401/403 redirect handling (skips /auth)
-      common/ws.js                # WebSocket helper; redirects on close codes 4401/4403
-      ...                         # other vanilla ES modules, no build step
-    css/
-    vendor/xterm.js               # bundled xterm.js
-scripts/                         # created at runtime; your .cmd/.ps1/.sh/.py files go here
+    sessions/                   terminal bridges: ssh_session, process_session (PTY), io_relay;
+                                AD_script_session (run a script to completion, capture output)
+    domain/                     AD search, OU tree sync, .doc parsing, script resolution
+    switch/
+      schemas.py                shared models: Host, Group, RootPoint, SwitchRequest, results
+      errors.py                 SwitchTaskError, SwitchConnectionError, InterfaceChangeRejected
+      runtime.py                SSH runner: run_commands, run_on_group, run_on_host
+      inventory/                inventory store + service (root points, groups, hosts)
+      mac_lookup/               schemas, parsing (MAC filter + table parser), tasks
+      interface/                schemas (+ input checks), parsing (show output),
+                                commands (apply / revert / action builders), tasks
+frontend/                       see frontend/README.md (JS layout) and
+                                frontend/static/css/README.md (UI style guide)
+  template/                     Jinja2: base.html, macros/, pages/{domain,switch}/
+  static/                       js/ (ES modules, no build step), css/, vendor/xterm.js
+scripts/                        runnable scripts (see below)
+storage/                        created at runtime: inventory.db (SQLite), ip_map.json
 ```
 
-*(`app/routers/auth.py` and the exact split of `core/auth/` files above reflect this project's conventions — adjust paths if yours differ.)*
+Feature folders follow one shape on both sides: on the backend `schemas` / `parsing` / `commands` / `tasks`, on the frontend `config` / `dom` / `api` / `render` / `main` (see `frontend/README.md`).
 
 ## Requirements
 
-- Python 3.12
-- `fastapi`, `uvicorn[standard]`, `jinja2`
-- `asyncssh` (SSH sessions)
-- `ptyprocess` on macOS/Linux **or** `pywinpty` on Windows (local script PTYs)
-- `pydantic`, `pydantic-settings`, `loguru`
-- `python-jose[cryptography]` (JWT issuing/verification for the auth layer)
+- Python 3.12, [uv](https://docs.astral.sh/uv/)
+- Dependencies in `pyproject.toml` (`fastapi`, `uvicorn`, `asyncssh`, `ptyprocess`, `pydantic-settings`, `python-jose`, `python-docx`, …)
+- On Windows also `pywinpty` (PTY for interactive scripts) — see Known gaps
+- A running auth service (see `.env` below) — the app registers with it on startup and logs in through it
 
 ## Getting started
 
-1. Install the core dependencies:
-   - install UV on PC than run at project level:
+1. Install dependencies:
    ```bash
    uv sync
    ```
-2. Add scripts to run. `SCRIPTS_DIR` (`scripts/` at the project root) is created automatically on startup; drop files into:
-   - `scripts/` — general scripts, listed on `/connect`
-   - `scripts/pc/`, `scripts/user/` — scoped scripts shown after a PC/user search on `/`
-   - `scripts/root/search_pcs.*` and `scripts/root/search_users.*` — the two search scripts the home page expects (see `pc_search_script`/`user_search_script` in `app/routers/pages.py`); each should print a line like `SEARCH_RESULTS: name1|name2|name3` to stdout.
-3. Run it:
-   ```bash
-   uv run python main.py 
+2. Create `.env` in the project root:
    ```
-4. Visit `http://localhost:8000`.
+   AUTH_API=https://auth.example.local      # auth service base URL
+   JWT_ISSUER=...
+   JWT_AUDIENCE=...
+   JWT_PUB_KEY=...                           # base64 public key used to verify tokens
+   JWT_ALGORITHM=ES256                       # optional, default ES256
+   JWT_EXPIRES=864000                        # optional, cookie lifetime in seconds
+   ```
+3. Put scripts in `scripts/` (`.ps1` or `.cmd`):
+   - `scripts/root/search_users.ps1`, `search_pcs.ps1` — the two searches on `/domain`; print a JSON array.
+   - `scripts/user/*`, `scripts/pc/*` — scripts offered after picking a user / PC.
+   - `scripts/domain/` — `create_user.ps1`, `get_schema.ps1`, `users_by_OU.ps1` used by the domain pages.
+4. Run:
+   ```bash
+   uv run python main.py
+   ```
+   The app picks a loopback IP for the current OS user (`127.0.0.2`, `127.0.0.3`, … — so several users on one machine each get their own instance), serves on port 80 and opens the browser. If that IP:80 is already taken, it exits with "App already running for this user."
+5. Add switches in **Inventory → Network inventory**, and SSH credentials on **Credentials**.
 
 ## Project status / known gaps
 
-- **SSH credentials live in the browser.** `/credentials` stores the username/password in plain `localStorage`, sent to the server only when opening a session. Fine for a trusted internal tool; worth revisiting before exposing this more broadly.
-- **`/connect`'s "Run a script" list is currently always empty** — `connect_page()` in `app/routers/pages.py` doesn't pass a `scripts` variable into the template, so that section always renders its "No scripts found" state.
-
+- **No automated tests.** Changes have been checked by hand and with throwaway scripts against a fake switch; a `tests/` suite for the switch parsers and command builders would be the cheapest place to start.
+- **Interface config is untested on real switches.** All commands are sent in one go without waiting for each prompt. That works for `show` commands, but a slow switch, or a command that asks for confirmation (`clear port-security …` on some IOS versions), could swallow the next line. Check the "Session output" panel the first few times.
+- **MAC lookup line format.** The MAC table parser expects the VLAN at the very start of each line. Some IOS versions right-align that column with leading spaces (`  10    0011.2233.4455 …`), which wouldn't match. Worth checking against your switches' output.
+- **`pywinpty` is not in `pyproject.toml`.** `process_session.py` imports it on Windows, so interactive scripts need it installed there.
+- **SSH credentials live in the browser** (`localStorage`), sent to the server only per request. Fine for an internal tool; revisit before exposing it more widely.
+- **`/switch/connect`'s "Run a script" list is always empty** — the page route passes no `scripts` to the template, and nothing calls `initScriptList()` (see `frontend/README.md`).
 
 ## License
 

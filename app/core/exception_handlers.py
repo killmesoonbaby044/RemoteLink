@@ -5,6 +5,11 @@ from starlette.responses import JSONResponse, HTMLResponse
 
 from app.core.auth.exception import AuthenticationError, UserDisabledError
 from app.services.domain.exceptions import InvalidScriptError, FileCheckError
+from app.services.switch.errors import (
+    SwitchTaskError,
+    SwitchConnectionError,
+    InterfaceChangeRejected,
+)
 from app.services.switch.inventory.inventory_errors import (
     InventoryError,
     NotFoundError,
@@ -41,6 +46,17 @@ async def inventory_error_handler(
     return JSONResponse(
         status_code=400, content={"detail": str(exc)}
     )  # ValidationError etc.
+
+
+async def switch_task_error_handler(
+    request: Request, exc: SwitchTaskError
+) -> JSONResponse:
+    logger.error(f"Switch task error: {exc}")
+    if isinstance(exc, SwitchConnectionError):
+        return JSONResponse(status_code=502, content={"detail": str(exc)})
+    if isinstance(exc, InterfaceChangeRejected):
+        return JSONResponse(status_code=409, content={"detail": str(exc)})
+    return JSONResponse(status_code=400, content={"detail": str(exc)})
 
 
 async def script_error_handler(
@@ -86,6 +102,7 @@ exception_handlers = {
     AuthenticationError: authentication_error_handler,
     UserDisabledError: user_disabled_handler,
     InventoryError: inventory_error_handler,
+    SwitchTaskError: switch_task_error_handler,
     InvalidScriptError: script_error_handler,
     FileCheckError: file_check_handler,
     # RequestValidationError: validation_exception_handler,

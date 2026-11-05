@@ -22,5 +22,9 @@ export const SEARCH_KINDS = {
         resultsId: "pc-search-results",
         scriptsSectionId: "pc-scripts-section",
         scriptsTargetId: "pc-scripts-target",
+        // An IPv4 address skips the AD search (there's no computer object
+        // to find by IP) and goes straight to the scripts, with the IP as
+        // the target - psexec/mstsc/etc. take an IP just like a name.
+        allowIpTarget: true,
     },
 };
