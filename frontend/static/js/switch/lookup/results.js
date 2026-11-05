@@ -122,7 +122,7 @@ export function renderResults(resultsEl, results, { errDisabled = false } = {}) 
             // already picked (see interface/main.js), in a new tab so the
             // lookup results stay put.
             interface: row.hostName && row.interface
-                ? `/switch/interface?host=${encodeURIComponent(row.hostName)}&port=${encodeURIComponent(row.interface)}`
+                ? `/network/interface?host=${encodeURIComponent(row.hostName)}&port=${encodeURIComponent(row.interface)}`
                 : null,
         };
 
@@ -139,9 +139,11 @@ export function renderResults(resultsEl, results, { errDisabled = false } = {}) 
                 const link = document.createElement("a");
                 link.className = "lookup-results-host-link";
                 link.href = href;
+                link.target = "_blank";
+                link.rel = "noopener";
                 if (column.link === "interface") {
-                    link.target = "_blank";
-                    link.rel = "noopener";
+                    link.dataset.host = row.hostName;
+                    link.dataset.port = row.interface;
                 }
                 link.textContent = value ?? "";
                 td.append(link);

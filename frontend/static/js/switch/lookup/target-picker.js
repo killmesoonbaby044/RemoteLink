@@ -8,6 +8,10 @@
 // they win over the root point. getSelectedTargets() always returns an
 // array: the checked groups, the root point as a single-item array, or
 // an empty array if nothing is selected yet.
+//
+// setFixedTarget(name) skips all of that: the caller already knows the
+// target, which can be anything the picker can't show (a nested group, a
+// group with no root point, a single host).
 
 export function createTargetPicker({
     form,
@@ -29,6 +33,8 @@ export function createTargetPicker({
     // radios don't uncheck themselves on a repeat click the way
     // checkboxes do.
     let checkedRootPointValue = null;
+    let fixedTarget = null;
+    let hasRootPoints = false;
 
     // Same markup/classes as the Search users / Search PC result lists
     // (see search.css: .search-results / .search-result-label / etc.)
@@ -55,6 +61,8 @@ export function createTargetPicker({
     }
 
     function getSelectedTargets() {
+        if (fixedTarget) return [fixedTarget];
+
         const checkedGroups = Array.from(
             form.querySelectorAll(`input[name="${targetRadioName}"]:checked`)
         ).map((input) => input.value);
@@ -114,12 +122,28 @@ export function createTargetPicker({
     // otherwise still submit).
     function lockForm(message) {
         targetStatus.textContent = message;
-        disableOnEmpty.forEach((el) => { if (el) el.disabled = true; });
-        if (submitButton) submitButton.disabled = true;
+        rootPointsBlock.hidden = true;
+        hasRootPoints = false;
+        syncLock();
+    }
+
+    function syncLock() {
+        const locked = !hasRootPoints && !fixedTarget;
+        disableOnEmpty.forEach((el) => { if (el) el.disabled = locked; });
+        updateSubmitAvailability();
+    }
+
+    function setFixedTarget(name) {
+        fixedTarget = name;
+        syncLock();
     }
 
     async function populateTargets() {
         if (!targetStatus) return;
+
+        // Can run again when the inventory changes: start from a clean slate.
+        checkedRootPointValue = null;
+        clearGroupSelection();
 
         try {
             const rootPoints = await fetchRootPoints();
@@ -131,8 +155,9 @@ export function createTargetPicker({
 
             renderTargetList(rootPointsList, rootPoints, rootPointRadioName);
             rootPointsBlock.hidden = false;
+            hasRootPoints = true;
             targetStatus.textContent = "";
-            updateSubmitAvailability();
+            syncLock();
         } catch (err) {
             lockForm("Failed to load inventory.");
             console.error(err);
@@ -166,5 +191,6 @@ export function createTargetPicker({
         getSelectedTargets,
         updateSubmitAvailability,
         populateTargets,
+        setFixedTarget,
     };
 }

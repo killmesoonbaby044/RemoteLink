@@ -1,6 +1,6 @@
 // Config for the "Interface config" page (template/pages/switch/switch_interface.html).
 
-export const API_BASE = "/switch/tasks";
+export const API_BASE = "/network/tasks";
 
 export const ENDPOINTS = {
     interfaces: `${API_BASE}/interfaces`,

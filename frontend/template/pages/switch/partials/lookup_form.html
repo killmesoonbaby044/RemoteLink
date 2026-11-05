@@ -1,0 +1,79 @@
+<p class="script-description">
+    Look up a MAC address (or its last few hex characters) across your switch inventory.
+</p>
+
+<form id="lookup-form" class="app-form">
+
+    <div class="form-field" id="mac-suffix-field">
+        <label for="mac-suffix">
+            MAC address
+        </label>
+        <div class="autosuggest" id="mac-suffix-wrapper">
+
+            <input
+                type="text"
+                id="mac-suffix"
+                name="mac_suffix"
+                placeholder="aabb.ccdd.eeff or a trailing suffix like ccdd.eeff"
+                autocomplete="off"
+                required
+            >
+
+            <div
+                class="autosuggest-menu"
+                id="mac-suffix-menu"
+            ></div>
+
+        </div>
+    </div>
+
+    <div class="form-field">
+        <label for="lookup-action">
+            Lookup type
+        </label>
+        <select id="lookup-action" name="action" required>
+            <option value="static">Access (MAC table + port-security)</option>
+            <option value="trunk">Trunk</option>
+            <option value="err-disabled">Err-disabled ports</option>
+        </select>
+    </div>
+
+    <div class="form-field">
+
+        <label>
+            Run against
+        </label>
+
+        {# Set when the lookup was started from an inventory row. #}
+        <div class="lookup-fixed-target" id="lookup-fixed-target" hidden>
+            <span class="tree-badge" id="lookup-fixed-badge"></span>
+            <span class="tree-name" id="lookup-fixed-name"></span>
+            <button type="button" id="lookup-fixed-change">Change</button>
+        </div>
+
+        <div id="lookup-target-picker">
+            <p class="search-status" id="lookup-target-status">
+                Loading inventory…
+            </p>
+
+            <div class="lookup-target-block" id="lookup-target-root-points-block" hidden>
+                <span class="lookup-target-subheading">Root point</span>
+                <div class="search-results" id="lookup-target-root-points"></div>
+            </div>
+
+            <div class="lookup-target-block" id="lookup-target-groups-block" hidden>
+                <span class="lookup-target-subheading">Groups</span>
+                <p class="search-status" id="lookup-target-groups-status" hidden></p>
+                <div class="search-results" id="lookup-target-groups"></div>
+            </div>
+        </div>
+
+    </div>
+
+    <button type="submit">
+        Look up
+    </button>
+
+</form>
+
+<div id="lookup-results" class="lookup-results" hidden></div>

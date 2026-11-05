@@ -17,7 +17,7 @@ from app.services.switch.inventory.switch_inventory_service import (
 from app.services.switch.schemas import Group, Host, RootPoint
 
 router = APIRouter(
-    prefix="/switch/inventory",
+    prefix="/network/inventory",
     tags=["Switch Inventory"],
     dependencies=[Depends(validate_user)],
 )

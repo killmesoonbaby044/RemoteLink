@@ -238,6 +238,16 @@
 
 .inv-toolbar--with-search { justify-content: space-between; }
 
+/* Hierarchy: search takes the free space, buttons stay together on the right */
+#tree-search { flex: 1; width: auto; min-width: 240px; margin-right: auto; }
+
+.tree .is-hidden,
+#tree-no-match.is-hidden { display: none; }
+
+a.btn { display: inline-block; text-decoration: none; }
+
+.tree-action { white-space: nowrap; }
+
 /* ---------- Search / filter inputs ---------- */
 /* Shared look for the table-filter boxes (roots/groups/hosts toolbars)
    and the member picker's filter box inside the create+edit modal -
@@ -508,6 +518,15 @@
 
 /* root point / group: room for the two-pane member picker */
 .modal.modal-wide { max-width: 980px; }
+
+/* task popups (lookup, interface config): most of the page, the content
+   scrolls. No site header to clear in here (see interface.css). */
+.modal.modal-task { --header-height: 0px; width: 90vw; max-width: none; height: 85vh; }
+.modal-task-body { flex: 1; min-height: 0; margin-top: 20px; overflow-y: auto; }
+
+/* the popup's own header already says this */
+.modal-task .connect-container { max-width: none; margin: 0; }
+.modal-task #iface-step-device > h1 { display: none; }
 
 .modal-head {
     flex-shrink: 0;

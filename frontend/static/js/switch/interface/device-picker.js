@@ -207,6 +207,7 @@ export function createDevicePicker({ container, filterInput, statusEl, expandBut
             }
             statusEl.textContent = "";
             statusEl.hidden = true;
+            filterInput.disabled = false;
             render();
         } catch (err) {
             statusEl.textContent = `Failed to load inventory: ${err.message}`;

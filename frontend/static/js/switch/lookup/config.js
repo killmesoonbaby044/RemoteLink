@@ -1,7 +1,7 @@
 // Config for the "MAC address lookup" block (template/pages/switch/switch_lookup.html).
 
 // Adjust this if your API router is mounted under a prefix (e.g. "/api").
-export const API_BASE = "/switch";
+export const API_BASE = "/network";
 
 // action <select> value -> endpoint from switch.py
 export const ACTION_ENDPOINTS = {

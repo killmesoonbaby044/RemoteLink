@@ -288,24 +288,28 @@ class SwitchInventoryService:
                 self._resolve_into(member, found, visiting=set())
             return list(found.values())
 
-    async def resolve_for_lookup(self, names: list[str]) -> list[Host]:
-        """Flatten every root/group into a de-duplicated
-        list of Hosts - one call to get every requested root/group."""
+    async def resolve_for_lookup(
+        self, names: list[str], kind: str | None = None
+    ) -> list[Host]:
+        """Flatten every root/group/host into a de-duplicated list of Hosts -
+        one call to get every requested target. Names are only unique within
+        a type, so `kind` says which type they are; without it a name is
+        tried as a root point, then a group, then a host."""
         found: dict[str, Host] = {}
 
         async with self._repo.transaction():
             for name in names:
-                if name in self._repo.root_points:
-                    type_obj = self._repo.root_points
-                elif name in self._repo.groups:
-                    type_obj = self._repo.groups
-                elif name in self._repo.hosts:
-                    self._resolve_into(name, found, visiting=set())
+                if kind in (None, "root") and name in self._repo.root_points:
+                    members = self._repo.root_points[name].members
+                elif kind in (None, "group") and name in self._repo.groups:
+                    members = self._repo.groups[name].members
+                elif kind in (None, "host") and name in self._repo.hosts:
+                    found[name] = self._repo.hosts[name]
                     continue
                 else:
-                    raise NotFoundError(f"Unknown root point or group '{name}'")
+                    raise NotFoundError(f"Unknown {kind or 'root point or group'} '{name}'")
 
-                for member in type_obj[name].members:
+                for member in members:
                     self._resolve_into(member, found, visiting=set())
 
             return list(found.values())

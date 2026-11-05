@@ -1,10 +1,10 @@
 /**
- * Hierarchy tab - read only.
+ * Hierarchy tab - the starting point for network tasks.
  *
- * This view is for understanding the tree, not editing it: no attach/
- * detach controls here at all. To change membership, edit a group or
- * root point from its table (the Groups / Root points tabs), which goes
- * through the normal create+edit modal.
+ * Rows carry task actions (SSH, interface config, lookup), but the tree
+ * itself isn't editable: no attach/detach controls here at all. To change
+ * membership, edit a group or root point from its table (the Groups /
+ * Root points tabs), which goes through the normal create+edit modal.
  *
  * Default expand state: root points render expanded, so their direct
  * groups show up by name as soon as you land on the tab - that's the
@@ -19,9 +19,14 @@
  * "stick" past a collapse: closing any node resets everything nested
  * inside it back to collapsed, so reopening it always shows the same
  * default view rather than remembering a group you'd expanded earlier.
+ *
+ * The search box filters the rendered tree in place: a match stays visible
+ * with its parents opened, and everything inside a matching root or group
+ * stays reachable. Clearing it puts back the expand state from before.
  */
 
 import {byName, el, renderEmptyBlock, splitMembers, state} from "./core.js";
+import {hostActions, lookupAction} from "./task-actions.js";
 
 function chevron() {
     const span = document.createElement("span");
@@ -30,12 +35,18 @@ function chevron() {
     return span;
 }
 
+/** What the search box matches a row against. */
+function searchText(...parts) {
+    return parts.filter(Boolean).join(" ").toLowerCase();
+}
+
 function hostLeaf(hostName, hostsByName) {
     const host = hostsByName.get(hostName);
     const trailing = [];
     if (host && host.address) trailing.push(el("span", { class: "tree-meta", text: host.address }));
     else if (!host) trailing.push(el("span", { class: "tree-warn", text: "not found" }));
-    return el("div", { class: "tree-leaf" }, [
+    if (host) trailing.push(...hostActions(host));
+    return el("div", { class: "tree-leaf", "data-search": searchText(hostName, host?.address, host?.description) }, [
         el("span", { class: "tree-badge tree-badge-host", text: "H" }),
         el("span", { class: "tree-name", text: hostName }),
         el("span", { class: "tree-trailing" }, trailing),
@@ -55,11 +66,11 @@ function renderRootNode(root, groupsByName, hostsByName) {
     const summaryMeta = `${groupNames.length} group${groupNames.length === 1 ? "" : "s"} · ${hostNames.length} host${hostNames.length === 1 ? "" : "s"}`;
 
     const details = el("details", { class: "tree-node", open: true });
-    details.appendChild(el("summary", { class: "tree-row" }, [
+    details.appendChild(el("summary", { class: "tree-row", "data-search": searchText(root.name) }, [
         chevron(),
         el("span", { class: "tree-badge tree-badge-root", text: "R" }),
         el("span", { class: "tree-name", text: root.name }),
-        el("span", { class: "tree-trailing" }, [el("span", { class: "tree-meta", text: summaryMeta })]),
+        el("span", { class: "tree-trailing" }, [el("span", { class: "tree-meta", text: summaryMeta }), lookupAction("root", root.name)]),
     ]));
 
     const children = el("div", { class: "tree-children" });
@@ -77,7 +88,7 @@ function renderRootNode(root, groupsByName, hostsByName) {
 
 function renderGroupNode(group, groupsByName, hostsByName, path) {
     if (path.has(group.name)) {
-        return el("div", { class: "tree-leaf" }, [
+        return el("div", { class: "tree-leaf", "data-search": searchText(group.name) }, [
             el("span", { class: "tree-badge tree-badge-group", text: "G" }),
             el("span", { class: "tree-name", text: group.name }),
             el("span", { class: "tree-warn", text: "circular reference — stopped here" }),
@@ -95,11 +106,11 @@ function renderGroupNode(group, groupsByName, hostsByName, path) {
     // what's inside the group - subgroups and hosts alike - only shows
     // once this node itself is clicked open.
     const details = el("details", { class: "tree-node" });
-    details.appendChild(el("summary", { class: "tree-row" }, [
+    details.appendChild(el("summary", { class: "tree-row", "data-search": searchText(group.name) }, [
         chevron(),
         el("span", { class: "tree-badge tree-badge-group", text: "G" }),
         el("span", { class: "tree-name", text: group.name }),
-        el("span", { class: "tree-trailing" }, [el("span", { class: "tree-meta", text: summaryMeta })]),
+        el("span", { class: "tree-trailing" }, [el("span", { class: "tree-meta", text: summaryMeta }), lookupAction("group", group.name)]),
     ]));
 
     const children = el("div", { class: "tree-children" });
@@ -113,6 +124,64 @@ function renderGroupNode(group, groupsByName, hostsByName, path) {
 
     details.appendChild(children);
     return details;
+}
+
+// ---------------------------------------------------------------
+// Search
+// ---------------------------------------------------------------
+
+let treeQuery = "";
+let openBeforeSearch = null; // <details> -> open, captured when a search starts
+
+const FILTERABLE = "details.tree-node, .tree-leaf";
+
+/** Shows/hides one node and what's inside it, opening only the nodes that
+ *  lead to a match. Returns whether the node or anything in it matched. */
+function filterNode(node, query, ancestorMatched) {
+    if (!node.matches("details")) {
+        const hit = node.dataset.search.includes(query);
+        node.classList.toggle("is-hidden", !hit && !ancestorMatched);
+        return hit;
+    }
+    const selfHit = node.querySelector(":scope > summary").dataset.search.includes(query);
+    let innerHit = false;
+    for (const child of node.querySelectorAll(`:scope > .tree-children > :is(${FILTERABLE})`)) {
+        innerHit = filterNode(child, query, ancestorMatched || selfHit) || innerHit;
+    }
+    node.classList.toggle("is-hidden", !selfHit && !innerHit && !ancestorMatched);
+    node.open = innerHit;
+    return selfHit || innerHit;
+}
+
+function applyTreeFilter() {
+    const container = document.getElementById("tree-view");
+    const noMatch = document.getElementById("tree-no-match");
+
+    if (!treeQuery) {
+        container.querySelectorAll(".is-hidden").forEach((node) => node.classList.remove("is-hidden"));
+        noMatch.classList.add("is-hidden");
+        if (openBeforeSearch) openBeforeSearch.forEach((open, node) => { node.open = open; });
+        openBeforeSearch = null;
+        return;
+    }
+
+    if (!openBeforeSearch) {
+        const nodes = container.querySelectorAll("details.tree-node");
+        openBeforeSearch = new Map(Array.from(nodes, (node) => [node, node.open]));
+    }
+
+    let label = null;
+    let anyHit = false;
+    for (const child of container.children) {
+        if (child.classList.contains("tree-section-label")) {
+            label = child;
+            label.classList.add("is-hidden");
+        } else if (child.matches(FILTERABLE) && filterNode(child, treeQuery, false)) {
+            anyHit = true;
+            label?.classList.remove("is-hidden");
+        }
+    }
+    noMatch.classList.toggle("is-hidden", anyHit);
 }
 
 /** Wires the "Expand all" / "Collapse all" toolbar buttons, plus the
@@ -152,12 +221,21 @@ export function setupTreeControls() {
             node.querySelectorAll("details.tree-node").forEach((d) => { d.open = false; });
         }, true);
     }
+
+    const search = document.getElementById("tree-search");
+    if (search) {
+        search.addEventListener("input", () => {
+            treeQuery = search.value.trim().toLowerCase();
+            applyTreeFilter();
+        });
+    }
 }
 
 /** Renders the whole hierarchy tab. Registered with core's onRender(). */
 export function renderTree() {
     const container = document.getElementById("tree-view");
     container.innerHTML = "";
+    openBeforeSearch = null; // those nodes are gone
 
     const hostsByName = byName(state.hosts);
     const groupsByName = byName(state.groups);
@@ -201,10 +279,8 @@ export function renderTree() {
     const unassignedHosts = state.hosts.filter((h) => !referencedHosts.has(h.name));
     if (unassignedHosts.length > 0) {
         container.appendChild(el("p", { class: "tree-section-label", text: "Unassigned hosts" }));
-        const wrap = el("div", { class: "resolve-list" });
-        for (const h of unassignedHosts) {
-            wrap.appendChild(el("span", { class: "chip", text: h.address ? `${h.name} · ${h.address}` : h.name }));
-        }
-        container.appendChild(wrap);
+        appendHostLeaves(container, unassignedHosts.map((h) => h.name), hostsByName);
     }
+
+    applyTreeFilter();
 }

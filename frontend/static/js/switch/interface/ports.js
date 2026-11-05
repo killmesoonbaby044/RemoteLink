@@ -37,7 +37,7 @@ export async function loadInterfaces({ focusFilter = false } = {}) {
         render.setStatus(dom.portsStatus, "");
         updatePortSummary();
         if (state.portOnLoad) {
-            openPortFromUrl();
+            openPendingPort();
         } else if (state.openOnLoad) {
             state.openOnLoad = false;
             openSingleVisiblePort();
@@ -55,16 +55,17 @@ function openSingleVisiblePort() {
     else visible[0]?.focus();
 }
 
-// ?port= comes from the MAC lookup table; match it case-insensitively
+// The port comes from the MAC lookup table; match it case-insensitively
 // against "show interfaces status". If it isn't there, leave it in the
 // filter so the closest rows are what's shown.
-function openPortFromUrl() {
+export function openPendingPort() {
     const wanted = state.portOnLoad.toLowerCase();
     state.portOnLoad = null;
     const iface = state.interfaces.find((i) => i.port.toLowerCase() === wanted);
     if (iface) {
         selectPort(iface.port);
     } else {
+        render.setStepCollapsed(portStep, false);
         dom.portFilter.value = wanted;
         render.filterRows(dom.portsTable.querySelectorAll("tr"), wanted);
     }

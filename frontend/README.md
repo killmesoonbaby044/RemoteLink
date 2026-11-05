@@ -117,11 +117,10 @@ holding everything. `main.js` only handles step 1 (device pick) and calls each m
 
 | Template | Loads |
 |---|---|
-| `pages/switch/network_hub.html` | — (static links, `css/inventory_hub.css`) |
-| `pages/switch/switch_connect.html` | `switch/connect/main.js` |
-| `pages/switch/switch_lookup.html` | `switch/lookup/lookup.js` |
-| `pages/switch/switch_interface.html` | `switch/interface/main.js` |
-| `pages/switch/switch_inventory.html` | `switch/inventory/main.js` |
+| `pages/switch/switch_connect.html` (`/switch/connect`) | `switch/connect/main.js` |
+| `pages/switch/switch_lookup.html` (`/network/lookup`) | `switch/lookup/lookup.js` |
+| `pages/switch/switch_interface.html` (`/network/interface`) | `switch/interface/main.js` |
+| `pages/switch/switch_inventory.html` (`/network`) | `switch/inventory/main.js` (imports `switch/lookup/lookup.js` and `switch/interface/main.js` for the popups) |
 | `pages/domain/domain.html` | `domain/search/main.js` |
 | `pages/domain/domain_schema.html` | `domain/inventory/main.js` |
 | `pages/domain/domain_add_user.html` | `domain/add-user/main.js` |

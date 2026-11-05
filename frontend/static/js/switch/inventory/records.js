@@ -7,6 +7,7 @@
 
 import {api, SCHEMA} from "./api.js";
 import {byName, el, refresh, renderEmptyBlock, splitMembers, state, toast} from "./core.js";
+import {hostActions, lookupAction} from "./task-actions.js";
 
 // ---------------------------------------------------------------
 // Stats
@@ -64,6 +65,8 @@ export function setupSearchInputs() {
 
 function actionButtons(type, item) {
     const wrap = el("div", { class: "cell-actions" });
+    const tasks = type === "host" ? hostActions(item, "btn-sm") : [lookupAction(type, item.name, "btn-sm")];
+    tasks.forEach((task) => wrap.appendChild(task));
     wrap.appendChild(el("button", {
         class: "btn btn-sm",
         type: "button",

@@ -2,29 +2,54 @@ from __future__ import annotations
 
 from fastapi import APIRouter, Depends
 from starlette.requests import Request
-from starlette.responses import HTMLResponse
+from starlette.responses import HTMLResponse, RedirectResponse
 
 from app.config import templates
 from app.core.auth.auth_manager import validate_user
 
 router = APIRouter(
-    prefix="/switch",
-    tags=["Switch Pages"],
+    prefix="/network",
+    tags=["Network Pages"],
     dependencies=[Depends(validate_user)],
 )
 
 
 @router.get("", response_class=HTMLResponse)
-async def network_hub(request: Request):
-    """Network hub: links to connect, MAC lookup and interface config."""
+async def network(request: Request):
+    """Entry point of the network area: the inventory, plus SSH, lookup
+    and interface config started from its rows."""
 
     return templates.TemplateResponse(
-        request=request,
-        name="pages/switch/network_hub.html",
+        request=request, name="pages/switch/switch_inventory.html"
     )
 
 
-@router.get("/connect", response_class=HTMLResponse)
+@router.get("/lookup", response_class=HTMLResponse)
+async def network_lookup(request: Request):
+    return templates.TemplateResponse(
+        request=request,
+        name="pages/switch/switch_lookup.html",
+    )
+
+
+@router.get("/interface", response_class=HTMLResponse)
+async def network_interface(request: Request):
+    return templates.TemplateResponse(
+        request=request,
+        name="pages/switch/switch_interface.html",
+    )
+
+
+# -- /switch: the connect page, and redirects from the old page URLs ----------
+
+legacy_router = APIRouter(
+    prefix="/switch",
+    tags=["Network Pages"],
+    dependencies=[Depends(validate_user)],
+)
+
+
+@legacy_router.get("/connect", response_class=HTMLResponse)
 async def switch_connect(request: Request):
     """SSH sessions for unix and switch."""
 
@@ -34,24 +59,20 @@ async def switch_connect(request: Request):
     )
 
 
-@router.get("/lookup", response_class=HTMLResponse)
-async def switch_lookup(request: Request):
-    return templates.TemplateResponse(
-        request=request,
-        name="pages/switch/switch_lookup.html",
-    )
+def _moved(target: str):
+    async def redirect(request: Request) -> RedirectResponse:
+        query = request.url.query
+        return RedirectResponse(f"{target}?{query}" if query else target)
+
+    return redirect
 
 
-@router.get("/interface", response_class=HTMLResponse)
-async def switch_interface(request: Request):
-    return templates.TemplateResponse(
-        request=request,
-        name="pages/switch/switch_interface.html",
-    )
-
-
-@router.get("/inventory", response_class=HTMLResponse)
-async def switch_inventory(request: Request):
-    return templates.TemplateResponse(
-        request=request, name="pages/switch/switch_inventory.html"
+for _old, _new in {
+    "": "/network",
+    "/inventory": "/network",
+    "/lookup": "/network/lookup",
+    "/interface": "/network/interface",
+}.items():
+    legacy_router.add_api_route(
+        _old, _moved(_new), methods=["GET"], include_in_schema=False
     )

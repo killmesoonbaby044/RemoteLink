@@ -92,12 +92,13 @@ async def run_on_group(
     commands: list[str],
     parse: ParseFn,
     max_concurrent: int = 10,
+    kind: str | None = None,
 ) -> list[HostTaskResult]:
     """Resolves `group_name` or "root_point" via the inventory, then runs `commands` on
     every host concurrently (capped by `max_concurrent`), parsing each
     host's output independently."""
 
-    hosts = await switch_inventory_service.resolve_for_lookup(group_name)
+    hosts = await switch_inventory_service.resolve_for_lookup(group_name, kind)
     semaphore = asyncio.Semaphore(max_concurrent)
 
     async def run_one(host: Host) -> HostTaskResult:

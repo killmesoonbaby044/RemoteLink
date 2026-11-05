@@ -53,6 +53,10 @@ function syncMacField() {
 dom.actionSelect?.addEventListener("change", syncMacField);
 syncMacField();
 
+// Bumped per run and per target change, so a slow answer can't draw its
+// results under a different target.
+let currentRun = 0;
+
 dom.form?.addEventListener("submit", async (event) => {
     event.preventDefault();
 
@@ -74,6 +78,7 @@ dom.form?.addEventListener("submit", async (event) => {
     dom.submitButton.disabled = true;
     dom.submitButton.textContent = "Looking up…";
     dom.resultsEl.hidden = true;
+    const run = ++currentRun;
 
     try {
         // NOTE: `group` is now always a list of strings, for all the MAC
@@ -88,11 +93,14 @@ dom.form?.addEventListener("submit", async (event) => {
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
                 group: targets,
+                ...(fixedTarget && { kind: fixedTarget.kind }),
                 ...(needsMac && { mac_suffix: mac }),
                 username: localStorage.getItem("ssh_username"),
                 password: localStorage.getItem("ssh_password"),
             }),
         });
+
+        if (run !== currentRun) return; // the target changed while this was running
 
         if (!response.ok) {
             renderError(dom.resultsEl, `Lookup failed (${response.status}).`);
@@ -100,9 +108,11 @@ dom.form?.addEventListener("submit", async (event) => {
         }
 
         const data = await response.json();
+        if (run !== currentRun) return;
         if (needsMac) pushSearch(MAC_HISTORY_KIND, mac);
         renderResults(dom.resultsEl, data.results, { errDisabled: !needsMac });
     } catch (err) {
+        if (run !== currentRun) return;
         renderError(dom.resultsEl, "Lookup failed - check your connection and try again.");
         console.error(err);
     } finally {
@@ -112,3 +122,36 @@ dom.form?.addEventListener("submit", async (event) => {
 });
 
 targetPicker.populateTargets();
+
+export const reloadTargets = () => targetPicker.populateTargets();
+
+const BADGES = { root: "R", group: "G", host: "H" };
+let fixedTarget = null;
+
+// Runs the lookup against one inventory item ({kind, name}) instead of what's
+// picked in the form; null goes back to the picker. Results on show belong to
+// the previous target, so they go when it changes.
+export function setLookupTarget(target) {
+    if (target?.kind === fixedTarget?.kind && target?.name === fixedTarget?.name) return;
+    fixedTarget = target;
+    currentRun++;
+
+    targetPicker.setFixedTarget(target ? target.name : null);
+    dom.fixedTarget.hidden = !target;
+    dom.targetPicker.hidden = Boolean(target);
+    if (target) {
+        dom.fixedBadge.className = `tree-badge tree-badge-${target.kind}`;
+        dom.fixedBadge.textContent = BADGES[target.kind];
+        dom.fixedName.textContent = target.name;
+    }
+
+    dom.resultsEl.hidden = true;
+    dom.resultsEl.innerHTML = "";
+}
+
+dom.fixedChange?.addEventListener("click", () => setLookupTarget(null));
+
+// The first field that's actually on show for the current lookup type.
+export function focusLookup() {
+    (dom.macField?.hidden ? dom.actionSelect : dom.macInput)?.focus();
+}

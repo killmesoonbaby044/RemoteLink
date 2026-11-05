@@ -126,6 +126,8 @@ export function createAutosuggest({
 
     input.addEventListener("keydown", (event) => {
         if (event.key === "Escape") {
+            // An open list takes this Escape, so a popup around it stays open.
+            if (isOpen()) event.stopPropagation();
             close();
             return;
         }

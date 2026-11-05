@@ -9,6 +9,8 @@
 import {onRender, refresh} from "./core.js";
 import {renderRecords, setupModalChrome, setupSearchInputs} from "./records.js";
 import {renderTree, setupTreeControls} from "./hierarchy.js";
+import {markInventoryChanged as markInterfaceStale} from "./interface-dialog.js";
+import {markInventoryChanged as markLookupStale, setupLookupDialog} from "./lookup-dialog.js";
 
 function setupTabs() {
     const tabs = document.querySelectorAll(".inv-tab");
@@ -30,9 +32,12 @@ function setupTabs() {
 document.addEventListener("DOMContentLoaded", () => {
     onRender(renderRecords);
     onRender(renderTree);
+    onRender(markLookupStale);
+    onRender(markInterfaceStale);
     setupTabs();
     setupModalChrome();
     setupSearchInputs();
     setupTreeControls();
+    setupLookupDialog();
     refresh();
 });

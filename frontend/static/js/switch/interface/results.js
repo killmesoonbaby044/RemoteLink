@@ -48,7 +48,7 @@ export function showResult(title, data, { canRevert }) {
     reveal(dom.result, dom.saveButton);
 }
 
-function showResultMessage(text, isError = false) {
+export function showResultMessage(text, isError = false) {
     dom.resultMessage.textContent = text;
     dom.resultMessage.classList.toggle("lookup-error", isError);
     dom.resultMessage.hidden = false;

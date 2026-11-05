@@ -17,11 +17,11 @@ Developed on macOS, deployed on Windows: the domain scripts are `.ps1` / `.cmd`.
 - **Add user** (`/domain/add_user`) — form, or upload a `.doc`/`.docx` to pre-fill it; runs `scripts/domain/create_user.ps1`. The OU picker remembers recent picks.
 - **Domain inventory** (`/domain/inventory`) — the OU tree, synced from AD with `scripts/domain/get_schema.ps1` and cached in SQLite. Each OU row expands to the users in it (`users_by_OU.ps1`).
 
-### Network (`/switch`)
-A hub page with three tools:
+### Network (`/network`)
+The switch inventory is the entry point: a hierarchy you can search, with task actions on every row (and in the Root points / Groups / Hosts tabs). **Lookup** and **Interface** open as popups, prefilled from the row; **SSH** opens `/ssh_terminal` for that host. The tools are also standalone pages:
 - **Connect to device** (`/switch/connect`) — interactive SSH terminal to any host (`asyncssh`).
-- **MAC lookup** (`/switch/lookup`) — finds a MAC (or its last hex characters) in the static / dynamic / port-security MAC tables of every switch under a root point or group, concurrently.
-- **Interface config** (`/switch/interface`) — for Cisco IOS switches:
+- **MAC lookup** (`/network/lookup`) — finds a MAC (or its last hex characters) in the static / dynamic / port-security MAC tables of every switch under a root point or group, concurrently.
+- **Interface config** (`/network/interface`) — for Cisco IOS switches:
   1. pick a switch from the inventory tree (or search by name/address);
   2. pick an interface from `show interfaces status`;
   3. the form is pre-filled from `show running-config interface X`. Only fields you change are sent; a cleared field sends `no …`.
@@ -30,7 +30,7 @@ A hub page with three tools:
   - **Preview** shows the exact commands → **Run** sends them in one SSH session and shows the new `show run int` → **Save** (`write memory`) or **Revert** (back to the config from before the run). A header **Save switch config** button turns blue while the running-config has unsaved changes.
 
 ### Inventory (`/inventory_hub`)
-- **Network inventory** (`/switch/inventory`) — CRUD for hosts, groups (can nest) and root points, plus a read-only hierarchy view. Stored in SQLite.
+- **Network inventory** — links to `/network`: CRUD for hosts, groups (can nest) and root points. Stored in SQLite.
 - **Domain inventory** — see above.
 
 ### Shared
@@ -88,10 +88,11 @@ app/
   routers/
     login.py                    /login, /auth
     pages/                      HTML pages: app.py (/, hubs, credentials, terminals), domain.py, switches.py
+                                (/network pages; old /switch page URLs redirect there)
     ssh_ws.py, script_ws.py     /ws/ssh, /ws/script
     domain_scripts.py           /domain/* JSON endpoints (search, add user, OU tree sync)
-    switch_inventory.py         /switch/inventory/* CRUD
-    switch_tasks.py             /switch/tasks/* (MAC lookup, interface config)
+    switch_inventory.py         /network/inventory/* CRUD
+    switch_tasks.py             /network/tasks/* (MAC lookup, interface config)
   services/
     sessions/                   terminal bridges: ssh_session, process_session (PTY), io_relay;
                                 AD_script_session (run a script to completion, capture output)
@@ -145,12 +146,11 @@ Feature folders follow one shape on both sides: on the backend `schemas` / `pars
    uv run python main.py
    ```
    The app picks a loopback IP for the current OS user (`127.0.0.2`, `127.0.0.3`, … — so several users on one machine each get their own instance), serves on port 80 and opens the browser. If that IP:80 is already taken, it exits with "App already running for this user."
-5. Add switches in **Inventory → Network inventory**, and SSH credentials on **Credentials**.
+5. Add switches on **Network**, and SSH credentials on **Credentials**.
 
 ## Project status / known gaps
 
 - **No automated tests.** Changes have been checked by hand and with throwaway scripts against a fake switch; a `tests/` suite for the switch parsers and command builders would be the cheapest place to start.
-- **Interface config is untested on real switches.** All commands are sent in one go without waiting for each prompt. That works for `show` commands, but a slow switch, or a command that asks for confirmation (`clear port-security …` on some IOS versions), could swallow the next line. Check the "Session output" panel the first few times.
 - **MAC lookup line format.** The MAC table parser expects the VLAN at the very start of each line. Some IOS versions right-align that column with leading spaces (`  10    0011.2233.4455 …`), which wouldn't match. Worth checking against your switches' output.
 - **`pywinpty` is not in `pyproject.toml`.** `process_session.py` imports it on Windows, so interactive scripts need it installed there.
 - **SSH credentials live in the browser** (`localStorage`), sent to the server only per request. Fine for an internal tool; revisit before exposing it more widely.

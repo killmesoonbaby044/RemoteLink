@@ -1,4 +1,4 @@
-import { getCredentials, saveCredentials } from "./store.js";
+import {getCredentials, saveCredentials} from "./store.js";
 
 const form = document.getElementById("credentials-form");
 const usernameInput = document.getElementById("username");
@@ -28,5 +28,5 @@ form.addEventListener("submit", (event) => {
     saveCredentials(username, password);
 
     status.textContent = "Credentials saved.";
-    window.location.replace("/domain");
+    window.location.replace("/network");
 });

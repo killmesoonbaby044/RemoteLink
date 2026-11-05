@@ -35,6 +35,7 @@ async def run_lookup(
     try:
         results = await run_on_group(
             group_name=req.group,
+            kind=req.kind,
             username=req.username,
             password=req.password,
             commands=[_build_command(base, req.mac_suffix) for base in base_commands],
@@ -58,6 +59,7 @@ async def run_err_disabled_lookup(req: LookupTargetRequest) -> MacLookupResponse
     try:
         results = await run_on_group(
             group_name=req.group,
+            kind=req.kind,
             username=req.username,
             password=req.password,
             commands=["show interfaces status err-disabled"],

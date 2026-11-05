@@ -30,7 +30,7 @@ from app.services.switch.mac_lookup.tasks import run_err_disabled_lookup, run_lo
 from app.services.switch.schemas import SwitchRequest
 
 router = APIRouter(
-    prefix="/switch",
+    prefix="/network",
     tags=["Switch Tasks"],
     dependencies=[Depends(validate_user)],
 )

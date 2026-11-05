@@ -13,7 +13,7 @@
  *    a template string - formatErrorDetail() below is the fix.
  */
 
-export const API_BASE = "/switch/inventory";
+export const API_BASE = "/network/inventory";
 
 export const SCHEMA = {
     host: {

@@ -12,7 +12,7 @@ export const state = {
     snapshot: null,        // config.lines right before the last Run, for Revert
     pendingAction: null,   // port action waiting for its confirmation
     openOnLoad: false,     // Enter was pressed in the port filter before the list arrived
-    portOnLoad: null,      // port from ?port= in the URL, opened once the list arrives
+    portOnLoad: null,      // port asked for from outside (URL or popup), opened once the list arrives
     unsaved: false,        // running-config changed since the last write memory
     unsavedBeforeRun: false,
 };

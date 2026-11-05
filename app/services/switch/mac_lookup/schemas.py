@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from typing import Literal
+
 from pydantic import BaseModel, Field
 
 from app.services.switch.schemas import HostTaskResult
@@ -28,6 +30,7 @@ class ErrDisabledEntry(BaseModel):
 
 class LookupTargetRequest(BaseModel):
     group: list[str]  # a host name or a group name from the inventory
+    kind: Literal["root", "group", "host"] | None = None  # what `group` names, if known
     username: str
     password: str
 
