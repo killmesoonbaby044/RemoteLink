@@ -9,7 +9,7 @@ from fastapi.responses import HTMLResponse
 from app.config import templates
 from app.core.auth.auth_manager import validate_user
 from app.services.domain.schema import ScriptQueryParams
-from app.services.switch.schemas import SSHScriptQueryParams
+from app.services.network.schemas import SSHScriptQueryParams
 
 router = APIRouter(tags=["Common HTML Pages"], dependencies=[Depends(validate_user)])
 

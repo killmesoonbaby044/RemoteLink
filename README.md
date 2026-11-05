@@ -46,7 +46,7 @@ SSH sessions and interactive scripts use the same model: the backend opens eithe
 - `/terminal?folder=<f>&script=<name>` → WebSocket `/ws/script`, which resolves the script inside `scripts/<folder>/` (rejecting path traversal) and runs `.ps1` with `powershell` and `.cmd` with `cmd /c`.
 
 ### Switch tasks
-`app/services/switch/runtime.py` opens one SSH session per switch, writes a short scripted command list (`terminal length 0`, the commands, `exit`) and returns the transcript. Task modules only decide what to send and how to read the answer:
+`app/services/network/runtime.py` opens one SSH session per switch, writes a short scripted command list (`terminal length 0`, the commands, `exit`) and returns the transcript. Task modules only decide what to send and how to read the answer:
 
 - `run_on_group` — every host under a group/root point, concurrently (MAC lookup). A failed host becomes a per-host error in the result.
 - `run_on_host` — one switch by inventory name (interface config). A failed connection raises `SwitchConnectionError` → HTTP 502.
@@ -87,17 +87,17 @@ app/
     middleware.py               AuthRedirectMiddleware
   routers/
     login.py                    /login, /auth
-    pages/                      HTML pages: app.py (/, hubs, credentials, terminals), domain.py, switches.py
+    pages/                      HTML pages: app.py (/, hubs, credentials, terminals), domain.py, network.py
                                 (/network pages; old /switch page URLs redirect there)
     ssh_ws.py, script_ws.py     /ws/ssh, /ws/script
     domain_scripts.py           /domain/* JSON endpoints (search, add user, OU tree sync)
-    switch_inventory.py         /network/inventory/* CRUD
-    switch_tasks.py             /network/tasks/* (MAC lookup, interface config)
+    network_inventory.py        /network/inventory/* CRUD
+    network_tasks.py            /network/tasks/* (MAC lookup, interface config)
   services/
     sessions/                   terminal bridges: ssh_session, process_session (PTY), io_relay;
                                 AD_script_session (run a script to completion, capture output)
     domain/                     AD search, OU tree sync, .doc parsing, script resolution
-    switch/
+    network/
       schemas.py                shared models: Host, Group, RootPoint, SwitchRequest, results
       errors.py                 SwitchTaskError, SwitchConnectionError, InterfaceChangeRejected
       runtime.py                SSH runner: run_commands, run_on_group, run_on_host
@@ -107,7 +107,7 @@ app/
                                 commands (apply / revert / action builders), tasks
 frontend/                       see frontend/README.md (JS layout) and
                                 frontend/static/css/README.md (UI style guide)
-  template/                     Jinja2: base.html, macros/, pages/{domain,switch}/
+  template/                     Jinja2: base.html, macros/, pages/{domain,network}/
   static/                       js/ (ES modules, no build step), css/, vendor/xterm.js
 scripts/                        runnable scripts (see below)
 storage/                        created at runtime: inventory.db (SQLite), ip_map.json
@@ -151,11 +151,3 @@ Feature folders follow one shape on both sides: on the backend `schemas` / `pars
 ## Project status / known gaps
 
 - **No automated tests.** Changes have been checked by hand and with throwaway scripts against a fake switch; a `tests/` suite for the switch parsers and command builders would be the cheapest place to start.
-- **MAC lookup line format.** The MAC table parser expects the VLAN at the very start of each line. Some IOS versions right-align that column with leading spaces (`  10    0011.2233.4455 …`), which wouldn't match. Worth checking against your switches' output.
-- **`pywinpty` is not in `pyproject.toml`.** `process_session.py` imports it on Windows, so interactive scripts need it installed there.
-- **SSH credentials live in the browser** (`localStorage`), sent to the server only per request. Fine for an internal tool; revisit before exposing it more widely.
-- **`/switch/connect`'s "Run a script" list is always empty** — the page route passes no `scripts` to the template, and nothing calls `initScriptList()` (see `frontend/README.md`).
-
-## License
-
-No license file is included — add one if you plan to share or reuse this code.

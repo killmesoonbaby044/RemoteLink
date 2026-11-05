@@ -1,6 +1,6 @@
 // Entry point for the domain "search" blocks (templates/pages/index.html).
 // Was index.js + common/entity-search.js - split the same way as
-// switch/lookup: config/dom/api/render here, this file just wires them
+// network/lookup: config/dom/api/render here, this file just wires them
 // together and loops over every entry in SEARCH_KINDS. A page missing a
 // block's elements (getSearchDom returns null) is skipped.
 

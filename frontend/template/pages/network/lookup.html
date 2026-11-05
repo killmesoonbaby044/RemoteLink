@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+
+
+{% block title %}
+MAC address lookup
+{% endblock %}
+
+
+{% block head %}
+
+<link rel="stylesheet" href="/static/css/shared/forms.css">
+<link rel="stylesheet" href="/static/css/shared/connect-layout.css">
+<link rel="stylesheet" href="/static/css/shared/search.css">
+<link rel="stylesheet" href="/static/css/network/network.css">
+
+{% endblock %}
+
+
+{% block content %}
+
+<div class="connect-container">
+
+    <section class="connect-section lookup-section">
+
+        <h1>
+            MAC address lookup
+        </h1>
+
+        {% include "pages/network/partials/lookup_form.html" %}
+
+    </section>
+
+</div>
+
+{% endblock %}
+
+
+{% block scripts %}
+
+<script type="module" src="/static/js/network/lookup/lookup.js"></script>
+
+{% endblock %}

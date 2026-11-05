@@ -26,26 +26,26 @@ the same move.
 
 | Folder | What goes here |
 |---|---|
-| `switch/` | Everything specific to the switch scope: `connect/`, `lookup/`, `inventory/`, `interface/` |
+| `network/` | Everything specific to the switch scope: `connect/`, `lookup/`, `inventory/`, `interface/` |
 | `domain/` | Everything specific to the AD domain scope: `search/`, `schema/`, `add-user/` |
 | `shared/` | Cross-scope **features** — their own state, DOM, endpoints, used by both scopes: `auth/`, `history/`, `credentials/`, `terminal/` |
 | `common/` | Stateless **helpers** with no identity of their own — a fetch wrapper, an href builder. Don't know what app they're in. |
 
 **Rule of thumb for new code:** does it have its own state/DOM/endpoint? → a feature
-(`switch/`, `domain/`, or `shared/` if more than one scope needs it). Is it just a
+(`network/`, `domain/`, or `shared/` if more than one scope needs it). Is it just a
 function other files call? → `common/`.
 
-`switch/` vs `domain/` vs `shared/` is a judgment call, not a hard line — e.g. `credentials`
-is only consumed by `switch/` today but lives in `shared/` because the concept (SSH
+`network/` vs `domain/` vs `shared/` is a judgment call, not a hard line — e.g. `credentials`
+is only consumed by `network/` today but lives in `shared/` because the concept (SSH
 credentials) isn't scope-specific, just not-yet-reused. If a `shared/` module ever ends up
 with only one caller forever, that's a sign it should move into that caller's scope folder
 instead.
 
 ## Module shape
 
-Every feature folder (`switch/lookup`, `switch/inventory`, `switch/interface`, `domain/search`, `domain/inventory`,
+Every feature folder (`network/lookup`, `network/inventory`, `network/interface`, `domain/search`, `domain/inventory`,
 `domain/add-user`, `shared/terminal`) follows the same shape, first established in
-`switch/lookup` — see its own `README_SWITCH.md` for the original write-up:
+`network/lookup` — see its own `README.md` for the original write-up:
 
 - **`config.js`** *(if the feature has real config)* — static constants: endpoint names,
   radio-group names, per-instance settings. Skip this file if there's nothing to put in it.
@@ -93,7 +93,7 @@ This also gave `domain/inventory` a real `config.js` (the users-lookup endpoint,
 `/domain/script/get_users` — separate from `dom.endpoint`, which is the schema list
 endpoint and stays wired per-page via `.schema-page`'s `data-endpoint`).
 
-`switch/interface` is the biggest feature, so its entry file is split by job instead of
+`network/interface` is the biggest feature, so its entry file is split by job instead of
 holding everything. `main.js` only handles step 1 (device pick) and calls each module's
 `wire*()` function:
 
@@ -117,10 +117,10 @@ holding everything. `main.js` only handles step 1 (device pick) and calls each m
 
 | Template | Loads |
 |---|---|
-| `pages/switch/switch_connect.html` (`/switch/connect`) | `switch/connect/main.js` |
-| `pages/switch/switch_lookup.html` (`/network/lookup`) | `switch/lookup/lookup.js` |
-| `pages/switch/switch_interface.html` (`/network/interface`) | `switch/interface/main.js` |
-| `pages/switch/switch_inventory.html` (`/network`) | `switch/inventory/main.js` (imports `switch/lookup/lookup.js` and `switch/interface/main.js` for the popups) |
+| `pages/network/connect.html` (`/switch/connect`) | `network/connect/main.js` |
+| `pages/network/lookup.html` (`/network/lookup`) | `network/lookup/lookup.js` |
+| `pages/network/interface.html` (`/network/interface`) | `network/interface/main.js` |
+| `pages/network/network.html` (`/network`) | `network/inventory/main.js` (imports `network/lookup/lookup.js` and `network/interface/main.js` for the popups) |
 | `pages/domain/domain.html` | `domain/search/main.js` |
 | `pages/domain/domain_schema.html` | `domain/inventory/main.js` |
 | `pages/domain/domain_add_user.html` | `domain/add-user/main.js` |
@@ -150,10 +150,10 @@ get mixed into `terminal_history`/`search_history:<kind>`. If a future feature w
 - **The plain "Run a script" list is dead.** `macros/script_list.html`'s `scope`-based
   (non-targeted) list expects `common/script_links.js`'s `initScriptList()` to fill in
   hrefs and wire click-to-history — but nothing currently calls `initScriptList()`
-  anywhere, and `pages/switch/switch_connect.html`'s `{{ script_list(scripts) }}` call doesn't pass a
+  anywhere, and `pages/network/connect.html`'s `{{ script_list(scripts) }}` call doesn't pass a
   `scope=` argument either, so `data-scope` never renders. Net effect: those links are
   `href="#"` and do nothing. Needs someone to decide the actual `scope` value the backend
-  expects and wire the call into `switch/connect/main.js`.
+  expects and wire the call into `network/connect/main.js`.
 - **`static/css`, `static/icons`, `static/vendor`** weren't part of this pass — nothing here
   describes their internal organization.
 

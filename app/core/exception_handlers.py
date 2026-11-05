@@ -5,12 +5,12 @@ from starlette.responses import JSONResponse, HTMLResponse
 
 from app.core.auth.exception import AuthenticationError, UserDisabledError
 from app.services.domain.exceptions import InvalidScriptError, FileCheckError
-from app.services.switch.errors import (
+from app.services.network.errors import (
     SwitchTaskError,
     SwitchConnectionError,
     InterfaceChangeRejected,
 )
-from app.services.switch.inventory.inventory_errors import (
+from app.services.network.inventory.inventory_errors import (
     InventoryError,
     NotFoundError,
     ConflictError,

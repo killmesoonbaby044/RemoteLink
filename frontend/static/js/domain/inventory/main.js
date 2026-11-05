@@ -1,6 +1,6 @@
 // Entry point for the domain schema page (templates/pages/domain_schema.html).
 // Was domain_schema.js as one file - split the same way as
-// switch/inventory: api/dom/render here, this file just holds the
+// network/inventory: api/dom/render here, this file just holds the
 // `schema` state and wires everything together.
 
 import {fetchSchema, syncSchema as syncSchemaRequest} from "./api.js";

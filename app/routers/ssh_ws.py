@@ -10,8 +10,8 @@ from loguru import logger
 from starlette.websockets import WebSocketDisconnect
 
 from app.core.auth.auth_manager import authenticate_websocket
+from app.services.network.schemas import SSHScriptQueryParams
 from app.services.sessions.ssh_session import SSHSession
-from app.services.switch.schemas import SSHScriptQueryParams
 
 router = APIRouter()
 
