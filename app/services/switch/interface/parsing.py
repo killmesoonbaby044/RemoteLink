@@ -57,19 +57,22 @@ MODE_ACCESS = "switchport mode access"
 PORT_SECURITY = "switchport port-security"
 PORT_SECURITY_STICKY = "switchport port-security mac-address sticky"
 
+
 def _clean_lines(output: str) -> list[str]:
     output = ANSI_RE.sub("", output).replace("\r", "")
     return output.split("\n")
 
 
-def _table_rows(lines: list[str], header_words: tuple[str, ...]) -> tuple[str, list[str]]:
+def _table_rows(
+    lines: list[str], header_words: tuple[str, ...]
+) -> tuple[str, list[str]]:
     """Finds the header line containing every word in `header_words` and
     returns it with the port rows that follow, up to the next prompt."""
 
     for start, line in enumerate(lines):
         if all(word in line for word in header_words):
             rows = []
-            for row in lines[start + 1:]:
+            for row in lines[start + 1 :]:
                 if PROMPT_RE.match(row):
                     break
                 if PORT_ROW_RE.match(row):
@@ -90,7 +93,9 @@ def parse_interfaces(output: str) -> list[InterfaceStatus]:
     lines = _clean_lines(output)
 
     status_header, status_rows = _table_rows(lines, ("Port", "Name", "Status", "Vlan"))
-    desc_header, desc_rows = _table_rows(lines, ("Interface", "Protocol", "Description"))
+    desc_header, desc_rows = _table_rows(
+        lines, ("Interface", "Protocol", "Description")
+    )
 
     descriptions: dict[str, str] = {}
     if desc_header:
@@ -126,14 +131,17 @@ def parse_vlans(output: str) -> list[Vlan]:
 
     lines = _clean_lines(output)
 
-    header = next((line for line in lines if all(w in line for w in ("VLAN", "Name", "Status"))), "")
+    header = next(
+        (line for line in lines if all(w in line for w in ("VLAN", "Name", "Status"))),
+        "",
+    )
     if not header:
         return []
     name_col = header.index("Name")
     status_col = header.index("Status")
 
     vlans: list[Vlan] = []
-    for row in lines[lines.index(header) + 1:]:
+    for row in lines[lines.index(header) + 1 :]:
         if PROMPT_RE.match(row):
             break
         match = VLAN_ROW_RE.match(row)
@@ -169,7 +177,7 @@ def parse_running_interface(output: str, interface: str) -> InterfaceConfig:
 
     name = RUN_INTERFACE_RE.match(lines[start]).group("name")
     body = []
-    for line in lines[start + 1:]:
+    for line in lines[start + 1 :]:
         if not line.startswith(" "):
             break
         body.append(line.strip())
@@ -211,12 +219,17 @@ def _value_after(lines: list[str], prefix: str) -> str:
     e.g. "switchport access vlan 20" -> "20"."""
 
     for line in lines:
-        if line.startswith(prefix + " ") and len(line.split()) == len(prefix.split()) + 1:
+        if (
+            line.startswith(prefix + " ")
+            and len(line.split()) == len(prefix.split()) + 1
+        ):
             return line.split()[-1]
     return ""
 
 
-def build_interface_config(name: str, lines: list[str], operational_mode: str | None) -> InterfaceConfig:
+def build_interface_config(
+    name: str, lines: list[str], operational_mode: str | None
+) -> InterfaceConfig:
     port_security: PortSecurity = "off"
     if PORT_SECURITY in lines:
         port_security = "sticky" if PORT_SECURITY_STICKY in lines else "on"
@@ -226,7 +239,14 @@ def build_interface_config(name: str, lines: list[str], operational_mode: str | 
         lines=lines,
         is_trunk=_is_trunk(lines, operational_mode),
         operational_mode=operational_mode or "",
-        description=next((line[len("description "):] for line in lines if line.startswith("description ")), ""),
+        description=next(
+            (
+                line[len("description ") :]
+                for line in lines
+                if line.startswith("description ")
+            ),
+            "",
+        ),
         access_vlan=_value_after(lines, "switchport access vlan"),
         voice_vlan=_value_after(lines, "switchport voice vlan"),
         mode_access=MODE_ACCESS in lines,

@@ -63,7 +63,9 @@ def _set_or_clear(command: str, desired: str | None, current: str) -> list[str]:
     return [f"{command} {desired}"] if desired else [f"no {command}"]
 
 
-def build_apply_commands(current: InterfaceConfig, req: InterfaceApplyRequest) -> list[str]:
+def build_apply_commands(
+    current: InterfaceConfig, req: InterfaceApplyRequest
+) -> list[str]:
     """Compares every field against the switch's current value, so an
     unchanged field never produces a command even if the page sent it."""
 
@@ -104,7 +106,9 @@ def build_apply_commands(current: InterfaceConfig, req: InterfaceApplyRequest) -
         # Remove bottom-up: dependent lines (port-security options) come
         # after the ones they depend on (switchport mode access).
         to_remove = set(req.remove_lines)
-        body.extend(negate(line) for line in reversed(current.lines) if line in to_remove)
+        body.extend(
+            negate(line) for line in reversed(current.lines) if line in to_remove
+        )
 
         body += _set_or_clear("description", req.description, current.description)
 
@@ -112,14 +116,28 @@ def build_apply_commands(current: InterfaceConfig, req: InterfaceApplyRequest) -
         # one that lacks the line adds it, before the settings that need
         # it (port-security is refused on a port in DTP dynamic mode).
         # Not when the change is removing that very line.
-        settings = _set_or_clear("switchport access vlan", req.access_vlan, current.access_vlan)
-        settings += _set_or_clear("switchport voice vlan", req.voice_vlan, current.voice_vlan)
-        settings += _set_or_clear("switchport port-security maximum", req.port_security_max, current.port_security_max)
+        settings = _set_or_clear(
+            "switchport access vlan", req.access_vlan, current.access_vlan
+        )
+        settings += _set_or_clear(
+            "switchport voice vlan", req.voice_vlan, current.voice_vlan
+        )
+        settings += _set_or_clear(
+            "switchport port-security maximum",
+            req.port_security_max,
+            current.port_security_max,
+        )
         if req.port_security is not None:
-            settings += _port_security_commands(current.port_security, req.port_security)
+            settings += _port_security_commands(
+                current.port_security, req.port_security
+            )
         settings += req.extra_lines
 
-        if (body or settings) and not current.mode_access and MODE_ACCESS not in to_remove:
+        if (
+            (body or settings)
+            and not current.mode_access
+            and MODE_ACCESS not in to_remove
+        ):
             body.append(MODE_ACCESS)
         body += settings
 
@@ -131,13 +149,17 @@ def build_apply_commands(current: InterfaceConfig, req: InterfaceApplyRequest) -
     return _wrap(req.interface, body)
 
 
-def build_action_commands(current: InterfaceConfig, interface: str, action: InterfaceAction) -> list[str]:
+def build_action_commands(
+    current: InterfaceConfig, interface: str, action: InterfaceAction
+) -> list[str]:
     """One-click actions. Access ports only: bouncing or clearing a
     trunk (often the uplink the SSH session itself runs over) is never
     offered."""
 
     if current.is_trunk:
-        raise InterfaceChangeRejected(f"{interface} is a trunk - port actions are only allowed on access ports.")
+        raise InterfaceChangeRejected(
+            f"{interface} is a trunk - port actions are only allowed on access ports."
+        )
 
     bounce = _wrap(interface, ["shutdown", "no shutdown"])
 
@@ -153,7 +175,9 @@ def build_action_commands(current: InterfaceConfig, interface: str, action: Inte
         return bounce
     if action == "clear-sticky":
         if current.port_security != "sticky":
-            raise InterfaceChangeRejected(f"{interface} has no sticky port-security to clear.")
+            raise InterfaceChangeRejected(
+                f"{interface} has no sticky port-security to clear."
+            )
         return [f"clear port-security sticky interface {interface}"]
     if action == "reset-port-security":
         # Forget every secure MAC, then bounce the port to bring it back
@@ -163,7 +187,9 @@ def build_action_commands(current: InterfaceConfig, interface: str, action: Inte
     raise InterfaceChangeRejected(f"Unknown action: {action}")
 
 
-def build_revert_commands(interface: str, current: list[str], before: list[str]) -> list[str]:
+def build_revert_commands(
+    interface: str, current: list[str], before: list[str]
+) -> list[str]:
     """Commands that turn `current` back into `before`: negate lines that
     were added, re-add lines that were removed. Returns [] when they
     already match.
@@ -178,8 +204,14 @@ def build_revert_commands(interface: str, current: list[str], before: list[str])
 
     before_set, current_set = set(before), set(current)
 
-    removals = [negate(line) for line in reversed(current) if line not in before_set and not is_allowed(line)]
-    additions = [line for line in before if line not in current_set and not is_allowed(line)]
+    removals = [
+        negate(line)
+        for line in reversed(current)
+        if line not in before_set and not is_allowed(line)
+    ]
+    additions = [
+        line for line in before if line not in current_set and not is_allowed(line)
+    ]
 
     before_allowed = [line for line in before if is_allowed(line)]
     current_allowed = [line for line in current if is_allowed(line)]

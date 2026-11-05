@@ -94,7 +94,9 @@ async def apply_interface_change(req: InterfaceApplyRequest) -> InterfaceChangeR
     return await _apply(req, before, commands)
 
 
-async def revert_interface_change(req: InterfaceRevertRequest) -> InterfaceChangeResponse:
+async def revert_interface_change(
+    req: InterfaceRevertRequest,
+) -> InterfaceChangeResponse:
     current = await get_interface_config(req)
     commands = build_revert_commands(req.interface, current.lines, req.before_lines)
 

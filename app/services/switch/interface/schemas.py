@@ -25,7 +25,9 @@ VLAN_LIST_RE = re.compile(r"^\d{1,4}(?:-\d{1,4})?(?:,\d{1,4}(?:-\d{1,4})?)*$")
 VLAN_MAX = 9999
 
 PortSecurity = Literal["sticky", "on", "off"]
-InterfaceAction = Literal["enable", "disable", "restart", "clear-sticky", "reset-port-security"]
+InterfaceAction = Literal[
+    "enable", "disable", "restart", "clear-sticky", "reset-port-security"
+]
 
 
 def check_cli_text(value: str) -> str:

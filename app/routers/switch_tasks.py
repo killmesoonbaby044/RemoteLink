@@ -43,7 +43,9 @@ async def mac_lookup(req: MacLookupRequest) -> MacLookupResponse:
     which table(s) it was in. Neither has trunk false positives - a MAC
     learned only via a trunk is DYNAMIC, and a secure MAC is only ever
     bound to the port it was learned/configured on."""
-    return await run_lookup(req, ["show mac address-table static", "show port-security address"])
+    return await run_lookup(
+        req, ["show mac address-table static", "show port-security address"]
+    )
 
 
 @router.post("/tasks/mac-lookup-trunk", response_model=MacLookupResponse)

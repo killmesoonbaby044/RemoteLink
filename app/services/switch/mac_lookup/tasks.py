@@ -26,7 +26,9 @@ def _build_command(base: str, suffix: str) -> str:
     return f"{base} | include {build_mac_filter(suffix)}"
 
 
-async def run_lookup(req: MacLookupRequest, base_commands: list[str]) -> MacLookupResponse:
+async def run_lookup(
+    req: MacLookupRequest, base_commands: list[str]
+) -> MacLookupResponse:
     """Every command in `base_commands` runs in the same SSH session per
     host; find_by_suffix parses their combined output."""
 
@@ -41,7 +43,9 @@ async def run_lookup(req: MacLookupRequest, base_commands: list[str]) -> MacLook
     except InventoryError as exc:
         return MacLookupResponse(
             results=[
-                HostTaskResult(host=",".join(req.group), address="", ok=False, error=str(exc))
+                HostTaskResult(
+                    host=",".join(req.group), address="", ok=False, error=str(exc)
+                )
             ]
         )
 
@@ -62,7 +66,9 @@ async def run_err_disabled_lookup(req: LookupTargetRequest) -> MacLookupResponse
     except InventoryError as exc:
         return MacLookupResponse(
             results=[
-                HostTaskResult(host=",".join(req.group), address="", ok=False, error=str(exc))
+                HostTaskResult(
+                    host=",".join(req.group), address="", ok=False, error=str(exc)
+                )
             ]
         )
 
